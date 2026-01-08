@@ -1,0 +1,290 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --panel-alt: #1c2029;
+  --text: #f4f6fb;
+  --muted: #9aa4b2;
+  --accent: #7c5cff;
+  --accent-strong: #a48bff;
+  --border: #262c36;
+  --danger: #ff5f7a;
+  --success: #30d158;
+  --warning: #ffb020;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: linear-gradient(135deg, #161925, #1a1f2a);
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+}
+
+.header-text h1 {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.header-text p {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.score-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.score-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.score-bar {
+  height: 10px;
+  background: #242a35;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.score-progress {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  transition: width 0.3s ease;
+}
+
+.score-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-header h2 {
+  font-size: 20px;
+}
+
+.panel-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.recorder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--panel-alt);
+  border-radius: 14px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+button {
+  border: none;
+  background: #2a3040;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button.primary {
+  background: var(--accent);
+}
+
+button.secondary {
+  background: #293042;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+button.danger {
+  background: #39202a;
+  color: var(--danger);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  background: #12151c;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.input-row {
+  display: flex;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.note-card,
+.task-card,
+.archive-item {
+  background: var(--panel-alt);
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.note-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.note-actions,
+.task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-group h3 {
+  font-size: 16px;
+}
+
+.task-card.done {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.task-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.badge {
+  font-size: 11px;
+  background: #2b3444;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.archive-panel {
+  gap: 12px;
+}
+
+.archive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.archive-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.archive-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.warning-text {
+  color: var(--warning);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .input-row {
+    flex-direction: column;
+  }
+}

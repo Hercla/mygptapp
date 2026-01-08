@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Voice Notes & Task Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="header-text">
+        <h1>Daily Voice Notes & Task Planner</h1>
+        <p>Capture your voice, drive your day.</p>
+      </div>
+      <div class="score-panel">
+        <div class="score-label">
+          <span>Daily Score</span>
+          <span id="score-percent">0%</span>
+        </div>
+        <div class="score-bar">
+          <div id="score-progress" class="score-progress"></div>
+        </div>
+        <div class="score-meta" id="score-meta">No tasks yet</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="panel" id="voice-panel">
+        <div class="panel-header">
+          <h2>Voice Notes</h2>
+          <span class="panel-subtitle">Record, save, and turn voice into action.</span>
+        </div>
+        <div id="recorder" class="recorder"></div>
+        <div id="notes" class="notes"></div>
+      </section>
+
+      <section class="panel" id="tasks-panel">
+        <div class="panel-header">
+          <h2>Daily Tasks</h2>
+          <span class="panel-subtitle">Focused execution, prioritized automatically.</span>
+        </div>
+        <div id="task-form" class="task-form"></div>
+        <div id="tasks" class="tasks"></div>
+      </section>
+    </main>
+
+    <section class="panel archive-panel" id="archive-panel">
+      <div class="panel-header">
+        <h2>Archive</h2>
+        <span class="panel-subtitle">Review previous days in read-only mode.</span>
+      </div>
+      <div class="archive-actions">
+        <button id="new-day" class="primary">New Day (Archive)</button>
+        <div id="archive-status" class="archive-status"></div>
+      </div>
+      <div id="archive-list" class="archive-list"></div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
