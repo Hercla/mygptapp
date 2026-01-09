@@ -13,6 +13,12 @@ const state = {
   tasks: [],
 };
 
+let mediaStream = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let currentAudioBlob = null;
+let currentAudioUrl = null;
+
 // ---------- Storage ----------
 function load() {
   try {
@@ -70,6 +76,7 @@ function renderNotes() {
       </div>
 
       <p class="itemText">${escapeHtml(note.text || "")}</p>
+      ${note.audio?.url ? `<div class="audioPreview"><audio controls src="${note.audio.url}"></audio></div>` : ""}
     `;
 
     ul.appendChild(li);
@@ -116,13 +123,87 @@ function renderTasks() {
 }
 
 // ---------- Actions ----------
-function setRecording(on) {
-  state.recording = on;
-  $("btnStart").disabled = on;
-  $("btnStop").disabled = !on;
-  $("recordingHint").textContent = on
-    ? "Recording (mock)… You can type notes and save."
-    : "Ready.";
+async function startRecording() {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setGlobalStatus("Micro not supported in this browser.");
+      return;
+    }
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    audioChunks = [];
+    currentAudioBlob = null;
+
+    mediaRecorder = new MediaRecorder(mediaStream, {
+      mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm",
+    });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      currentAudioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+
+      if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+
+      currentAudioUrl = URL.createObjectURL(currentAudioBlob);
+
+      const preview = $("audioPreview");
+      const player = $("audioPlayer");
+      player.src = currentAudioUrl;
+      preview.hidden = false;
+
+      setGlobalStatus("Recording stopped. Audio preview ready.");
+    };
+
+    mediaRecorder.start();
+
+    state.recording = true;
+    $("btnStart").disabled = true;
+    $("btnStop").disabled = false;
+    $("recordingHint").textContent = "Recording… Speak now.";
+    $("audioPreview").hidden = true;
+
+    setGlobalStatus("Recording started.");
+  } catch (err) {
+    setGlobalStatus("Micro permission denied or unavailable.");
+    console.error(err);
+    cleanupRecording();
+  }
+}
+
+function stopRecording() {
+  try {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
+  } finally {
+    if (mediaStream) {
+      for (const track of mediaStream.getTracks()) track.stop();
+    }
+    state.recording = false;
+    $("btnStart").disabled = false;
+    $("btnStop").disabled = true;
+    $("recordingHint").textContent = "Ready.";
+  }
+}
+
+function cleanupRecording() {
+  if (mediaStream) {
+    for (const track of mediaStream.getTracks()) track.stop();
+  }
+  mediaStream = null;
+  mediaRecorder = null;
+  audioChunks = [];
+  state.recording = false;
+
+  $("btnStart").disabled = false;
+  $("btnStop").disabled = true;
+  $("recordingHint").textContent = "Ready.";
 }
 
 function discardNoteInputs() {
@@ -144,9 +225,14 @@ function addNote() {
     title,
     text,
     createdAt: nowLabel(),
+    audio: currentAudioUrl ? { url: currentAudioUrl, mime: currentAudioBlob?.type || "audio/webm" } : null,
   };
 
   state.notes.unshift(note);
+  currentAudioBlob = null;
+  currentAudioUrl = null;
+  $("audioPreview").hidden = true;
+  $("audioPlayer").src = "";
   save();
   renderNotes();
   discardNoteInputs();
@@ -208,8 +294,8 @@ function toggleTaskDone(id) {
 
 // ---------- Init ----------
 function bindEvents() {
-  $("btnStart").addEventListener("click", () => setRecording(true));
-  $("btnStop").addEventListener("click", () => setRecording(false));
+  $("btnStart").addEventListener("click", startRecording);
+  $("btnStop").addEventListener("click", stopRecording);
   $("btnSaveNote").addEventListener("click", addNote);
   $("btnDiscardNote").addEventListener("click", discardNoteInputs);
 
@@ -250,7 +336,7 @@ function bindEvents() {
 (function init() {
   load();
   bindEvents();
-  setRecording(false);
+  cleanupRecording();
   renderNotes();
   renderTasks();
   setGlobalStatus("OK: Phase 2.1 loaded (UI + local persistence).");

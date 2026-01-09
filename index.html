@@ -28,11 +28,15 @@
         </div>
 
         <div class="row">
-          <button class="btn primary" id="btnStart">Start (mock)</button>
+          <button class="btn primary" id="btnStart">Start Recording</button>
           <button class="btn danger" id="btnStop" disabled>Stop</button>
         </div>
 
         <div class="hint" id="recordingHint">Ready.</div>
+        <div class="audioPreview" id="audioPreview" hidden>
+          <label class="label">Audio preview</label>
+          <audio id="audioPlayer" controls></audio>
+        </div>
 
         <label class="label" for="noteTitle">Title</label>
         <input class="input" id="noteTitle" placeholder="Morning reflection" />

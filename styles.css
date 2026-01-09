@@ -294,3 +294,11 @@ h1{
   text-align:center;
   font-size: 12px;
 }
+.audioPreview{
+  margin-top: 10px;
+}
+audio{
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 12px;
+}
