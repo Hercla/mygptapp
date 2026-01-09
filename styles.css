@@ -331,6 +331,53 @@ h1{
 .modeBadge.is-remember{ border-color: rgba(112,161,255,.35); color: rgba(255,255,255,.9); background: rgba(112,161,255,.12); }
 .modeBadge.is-waiting{ border-color: rgba(164,176,190,.30); color: rgba(255,255,255,.82); background: rgba(164,176,190,.10); }
 
+.pPicker{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin: 6px 0 8px;
+}
+
+.pChip{
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.03);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .08s ease, opacity .15s ease, border-color .15s ease;
+}
+
+.pChip:active{ transform: translateY(1px); }
+.pChip:hover{ opacity:.9; }
+
+.pChip.is-selected{
+  border-color: rgba(255,255,255,.35);
+  background: rgba(255,255,255,.08);
+}
+
+.pBadge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.04);
+  color: var(--dim);
+}
+
+.pBadge.p1{ border-color: rgba(255,77,90,.35); color: rgba(255,255,255,.9); }
+.pBadge.p2{ border-color: rgba(255,120,76,.35); color: rgba(255,255,255,.9); }
+.pBadge.p3{ border-color: rgba(255,255,255,.18); color: rgba(255,255,255,.82); }
+.pBadge.p4{ border-color: rgba(112,161,255,.28); color: rgba(255,255,255,.75); }
+.pBadge.p5{ border-color: rgba(164,176,190,.28); color: rgba(255,255,255,.72); }
+
 .badge{
   font-size: 11px;
   padding: 5px 9px;

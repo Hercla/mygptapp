@@ -5,15 +5,7 @@ const STORAGE_KEYS = {
   tasks: "mygptapp_tasks_v1",
 };
 
-const PRIORITY_VALUES = ["IMMEDIATE", "QUICK", "SCHEDULED", "ERRAND", "REMEMBER", "WAITING"];
-const PRIORITY_LABELS = {
-  IMMEDIATE: "Immediate",
-  QUICK: "Quick",
-  SCHEDULED: "Scheduled",
-  ERRAND: "Errand",
-  REMEMBER: "Remember",
-  WAITING: "Waiting",
-};
+const PRIORITY_VALUES = [1, 2, 3, 4, 5];
 const MODE_UI = {
   IMMEDIATE: { icon: "", label: "Immediate", cls: "is-immediate" },
   QUICK: { icon: "⚡", label: "Quick", cls: "is-quick" },
@@ -130,6 +122,7 @@ let currentAudioUrl = null;
 let currentAudioId = null;
 let currentAttachments = [];
 let currentTaskMode = "IMMEDIATE";
+let currentPriorityLevel = 3;
 
 // ---------- Storage ----------
 function load() {
@@ -165,13 +158,31 @@ function ensureSubtasks(task) {
   if (!Array.isArray(task.subtasks)) task.subtasks = [];
 }
 
-function normalizePriority(task) {
-  const legacy = { HIGH: "IMMEDIATE", MEDIUM: "QUICK", LOW: "WAITING" };
-  if (legacy[task.priority]) {
-    task.priority = legacy[task.priority];
+function normalizePriorityLevel(task) {
+  if (MODE_UI[task.priority]) {
+    task.mode = task.mode || task.priority;
   }
-  if (!PRIORITY_VALUES.includes(task.priority)) {
-    task.priority = "IMMEDIATE";
+  if (task.priority && String(task.priority).startsWith("P")) {
+    const parsed = Number(String(task.priority).slice(1));
+    if (!Number.isNaN(parsed)) {
+      task.priorityLevel = parsed;
+    }
+  }
+  if (typeof task.priorityLevel !== "number") {
+    task.priorityLevel = 3;
+  }
+  if (!PRIORITY_VALUES.includes(task.priorityLevel)) {
+    task.priorityLevel = 3;
+  }
+}
+
+function normalizeMode(task) {
+  const legacyMode = { HIGH: "IMMEDIATE", MEDIUM: "QUICK", LOW: "WAITING" };
+  if (!task.mode && legacyMode[task.priority]) {
+    task.mode = legacyMode[task.priority];
+  }
+  if (!task.mode || !MODE_UI[task.mode]) {
+    task.mode = "IMMEDIATE";
   }
 }
 
@@ -262,11 +273,17 @@ function renderTasks() {
     return;
   }
 
-  for (const task of state.tasks) {
-    normalizePriority(task);
-    const legacyMap = { HIGH: "IMMEDIATE", MEDIUM: "QUICK", LOW: "WAITING" };
-    const resolvedMode = legacyMap[task.priority] || task.priority;
-    const m = MODE_UI[resolvedMode] || { icon: "", label: String(resolvedMode), cls: "" };
+  const tasksToRender = state.tasks.slice();
+  tasksToRender.forEach((task) => {
+    normalizePriorityLevel(task);
+    normalizeMode(task);
+  });
+  tasksToRender.sort((a, b) => (a.priorityLevel ?? 3) - (b.priorityLevel ?? 3));
+
+  for (const task of tasksToRender) {
+    const m = MODE_UI[task.mode] || { icon: "", label: String(task.mode), cls: "" };
+    const p = task.priorityLevel ?? 3;
+    const pClass = `p${p}`;
     const li = document.createElement("li");
     li.className = "item";
 
@@ -275,10 +292,16 @@ function renderTasks() {
         <div>
           <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
           <div class="modeBadge ${m.cls}">${m.icon} ${m.label}</div>
-          <div class="itemMeta">${escapeHtml(task.createdAt)} · <span class="badge ${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span></div>
+          <div class="itemMeta">${escapeHtml(task.createdAt)}</div>
         </div>
 
         <div class="itemActions">
+          <select class="pSelect" data-action="setP" data-id="${task.id}">
+            ${[1, 2, 3, 4, 5]
+              .map((n) => `<option value="${n}" ${n === p ? "selected" : ""}>P${n}</option>`)
+              .join("")}
+          </select>
+          <span class="pBadge ${pClass}">P${p}</span>
           <button class="btn tiny ghost" data-action="toggleDone" data-id="${task.id}">
             ${task.done ? "Undone" : "Done"}
           </button>
@@ -497,7 +520,6 @@ function addNote() {
 function addTask() {
   const title = $("taskTitle").value.trim();
   const details = $("taskDetails").value.trim();
-  const priority = $("taskPriority").value;
 
   if (!title) {
     setGlobalStatus("Task not added: title required.");
@@ -509,6 +531,7 @@ function addTask() {
     title,
     details,
     priority: currentTaskMode,
+    priorityLevel: currentPriorityLevel,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
@@ -522,6 +545,7 @@ function addTask() {
   $("taskTitle").value = "";
   $("taskDetails").value = "";
   currentTaskMode = "IMMEDIATE";
+  currentPriorityLevel = 3;
   const picker = $("modePicker");
   if (picker) {
     const defaultBtn = picker.querySelector('button[data-mode="IMMEDIATE"]');
@@ -531,6 +555,12 @@ function addTask() {
       });
       defaultBtn.classList.add("is-selected", MODE_UI.IMMEDIATE.cls);
     }
+  }
+  const pPicker = $("pPicker");
+  if (pPicker) {
+    pPicker.querySelectorAll(".pChip").forEach((b) => b.classList.remove("is-selected"));
+    const def = pPicker.querySelector('button[data-p="3"]');
+    if (def) def.classList.add("is-selected");
   }
 
   setGlobalStatus("Task added.");
@@ -627,6 +657,23 @@ function bindEvents() {
     const defaultBtn = picker.querySelector('button[data-mode="IMMEDIATE"]');
     if (defaultBtn) defaultBtn.classList.add("is-selected", MODE_UI.IMMEDIATE.cls);
   }
+  const pPicker = $("pPicker");
+  if (pPicker) {
+    pPicker.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-p]");
+      if (!btn) return;
+
+      const p = Number(btn.dataset.p);
+      if (![1, 2, 3, 4, 5].includes(p)) return;
+
+      currentPriorityLevel = p;
+      pPicker.querySelectorAll(".pChip").forEach((b) => b.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+    });
+
+    const def = pPicker.querySelector('button[data-p="3"]');
+    if (def) def.classList.add("is-selected");
+  }
   $("noteImageInput").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -680,6 +727,18 @@ function bindEvents() {
   });
 
   $("tasksList").addEventListener("change", (e) => {
+    const sel = e.target.closest("select[data-action='setP']");
+    if (sel) {
+      const id = sel.dataset.id;
+      const p = Number(sel.value);
+      const t = state.tasks.find((x) => x.id === id);
+      if (!t) return;
+      t.priorityLevel = [1, 2, 3, 4, 5].includes(p) ? p : 3;
+      save();
+      renderTasks();
+      return;
+    }
+
     if (e.target.matches("input[data-subtask]")) {
       const subId = e.target.dataset.subtask;
       const taskEl = e.target.closest(".item");
@@ -694,6 +753,10 @@ function bindEvents() {
 
 (function init() {
   load();
+  state.tasks.forEach((t) => {
+    if (typeof t.priorityLevel !== "number") t.priorityLevel = 3;
+  });
+  save();
   openDB().catch(() => {});
   bindEvents();
   cleanupRecording();
@@ -702,5 +765,10 @@ function bindEvents() {
   renderTasks();
   setGlobalStatus("OK: Phase 2.1 loaded (UI + local persistence).");
 })();
+
+
+
+
+
 
 

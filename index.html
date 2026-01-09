@@ -98,13 +98,13 @@
 
         <div class="divider"></div>
 
-        <div class="chips">
-          <span class="chip immediate">IMMEDIATE</span>
-          <span class="chip quick">QUICK</span>
-          <span class="chip scheduled">SCHEDULED</span>
-          <span class="chip errand">ERRAND</span>
-          <span class="chip remember">REMEMBER</span>
-          <span class="chip waiting">WAITING</span>
+        <label class="label" data-i18n="priority">Priority (Alignment)</label>
+        <div class="pPicker" id="pPicker">
+          <button type="button" class="pChip" data-p="1">P1</button>
+          <button type="button" class="pChip" data-p="2">P2</button>
+          <button type="button" class="pChip is-selected" data-p="3">P3</button>
+          <button type="button" class="pChip" data-p="4">P4</button>
+          <button type="button" class="pChip" data-p="5">P5</button>
         </div>
 
         <ul class="list" id="tasksList"></ul>
