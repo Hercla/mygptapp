@@ -1,18 +1,99 @@
 <!doctype html>
 <html lang="fr">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>mygptapp</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Voice Notes & Task Planner</title>
     <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <main class="page">
-      <h1>mygptapp</h1>
-      <p>Projet initial.</p>
-      <button id="ping">Tester</button>
-      <div id="output" aria-live="polite"></div>
-    </main>
     <script src="./app.js" defer></script>
+  </head>
+
+  <body>
+    <div class="bg"></div>
+
+    <header class="header">
+      <h1>Daily Voice Notes & Task Planner</h1>
+      <p class="subtitle">
+        Capture rapide de notes (voice-style) et organisation des tâches par priorité, sans friction.
+      </p>
+      <div class="status" id="globalStatus">OK: app.js est bien connecté.</div>
+    </header>
+
+    <main class="container">
+      <!-- LEFT: VOICE NOTES (UI only for now) -->
+      <section class="card">
+        <div class="cardHeader">
+          <h2>Voice Notes</h2>
+          <span class="pill">Phase 2.1</span>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="btnStart">Start (mock)</button>
+          <button class="btn danger" id="btnStop" disabled>Stop</button>
+        </div>
+
+        <div class="hint" id="recordingHint">Ready.</div>
+
+        <label class="label" for="noteTitle">Title</label>
+        <input class="input" id="noteTitle" placeholder="Morning reflection" />
+
+        <label class="label" for="noteText">Notes</label>
+        <textarea class="textarea" id="noteText" rows="5" placeholder="Context / follow-up..."></textarea>
+
+        <div class="row">
+          <button class="btn accent" id="btnSaveNote">Save Note</button>
+          <button class="btn ghost" id="btnDiscardNote">Discard</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="listHeader">
+          <h3>Saved Notes</h3>
+          <button class="btn tiny ghost" id="btnClearNotes">Clear</button>
+        </div>
+
+        <ul class="list" id="notesList"></ul>
+      </section>
+
+      <!-- RIGHT: TASKS -->
+      <section class="card">
+        <div class="cardHeader">
+          <h2>Daily To-Do List</h2>
+          <span class="pill">Local</span>
+        </div>
+
+        <label class="label" for="taskTitle">Task</label>
+        <input class="input" id="taskTitle" placeholder="Plan weekly meals" />
+
+        <label class="label" for="taskDetails">Details (optional)</label>
+        <textarea class="textarea" id="taskDetails" rows="3" placeholder="Add helpful notes..."></textarea>
+
+        <label class="label" for="taskPriority">Priority</label>
+        <select class="select" id="taskPriority">
+          <option value="HIGH">High</option>
+          <option value="MEDIUM" selected>Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+
+        <div class="row">
+          <button class="btn accent" id="btnAddTask">Add Task</button>
+          <button class="btn ghost" id="btnClearTasks">Clear</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="chips">
+          <span class="chip high">HIGH</span>
+          <span class="chip medium">MEDIUM</span>
+          <span class="chip low">LOW</span>
+        </div>
+
+        <ul class="list" id="tasksList"></ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Phase 2.1 — UI + local persistence. Next: Audio recording (MediaRecorder) + real transcription.</span>
+    </footer>
   </body>
 </html>
