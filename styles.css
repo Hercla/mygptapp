@@ -372,3 +372,18 @@ audio{
   width:0%;
   transition: width .2s ease;
 }
+.modeBadge{
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:999px;
+  background: rgba(255,255,255,.08);
+  margin-right:6px;
+}
+
+.modeSelect{
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: rgba(0,0,0,.18);
+  color: var(--text);
+}
