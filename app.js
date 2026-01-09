@@ -142,6 +142,17 @@ function setGlobalStatus(msg) {
   $("globalStatus").textContent = msg;
 }
 
+function ensureSubtasks(task) {
+  if (!Array.isArray(task.subtasks)) task.subtasks = [];
+}
+
+function computeProgress(task) {
+  ensureSubtasks(task);
+  if (!task.subtasks.length) return 0;
+  const done = task.subtasks.filter((s) => s.done).length;
+  return Math.round((done / task.subtasks.length) * 100);
+}
+
 // ---------- Render ----------
 function renderNotes() {
   const ul = $("notesList");
@@ -247,6 +258,38 @@ function renderTasks() {
     if (task.done) {
       li.style.opacity = "0.62";
     }
+
+    ensureSubtasks(task);
+    const progress = computeProgress(task);
+
+    if (task.subtasks.length) {
+      li.innerHTML += `
+        <div class="progress">
+          <div style="width:${progress}%"></div>
+        </div>
+
+        <div class="subtasks">
+          ${task.subtasks
+            .map(
+              (st) => `
+            <label class="subtask">
+              <input type="checkbox" data-subtask="${st.id}" ${st.done ? "checked" : ""} />
+              ${escapeHtml(st.title)}
+            </label>
+          `
+            )
+            .join("")}
+        </div>
+      `;
+    }
+
+    li.innerHTML += `
+      <div class="row">
+        <button class="btn tiny ghost" data-action="addSubtask" data-id="${task.id}">
+          + Sub-task
+        </button>
+      </div>
+    `;
 
     ul.appendChild(li);
   }
@@ -434,6 +477,7 @@ function addTask() {
     priority,
     done: false,
     createdAt: nowLabel(),
+    subtasks: [],
   };
 
   state.tasks.unshift(task);
@@ -475,6 +519,44 @@ function toggleTaskDone(id) {
   save();
   renderTasks();
   setGlobalStatus(t.done ? "Task marked done." : "Task marked undone.");
+}
+
+function addSubtask(taskId) {
+  const title = prompt("Sub-task title");
+  if (!title) return;
+
+  const task = state.tasks.find((t) => t.id === taskId);
+  if (!task) return;
+
+  ensureSubtasks(task);
+
+  task.subtasks.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    title,
+    done: false,
+  });
+
+  save();
+  renderTasks();
+}
+
+function toggleSubtask(taskId, subId, done) {
+  const task = state.tasks.find((t) => t.id === taskId);
+  if (!task) return;
+
+  ensureSubtasks(task);
+
+  const sub = task.subtasks.find((s) => s.id === subId);
+  if (!sub) return;
+
+  sub.done = done;
+
+  if (computeProgress(task) === 100) {
+    task.done = true;
+  }
+
+  save();
+  renderTasks();
 }
 
 // ---------- Init ----------
@@ -528,6 +610,20 @@ function bindEvents() {
     const id = btn.dataset.id;
     if (action === "deleteTask") deleteTask(id);
     if (action === "toggleDone") toggleTaskDone(id);
+    if (action === "addSubtask") addSubtask(id);
+  });
+
+  $("tasksList").addEventListener("change", (e) => {
+    const cb = e.target;
+    if (!cb.matches("input[data-subtask]")) return;
+
+    const subId = cb.dataset.subtask;
+    const taskEl = cb.closest(".item");
+    const taskId = taskEl?.querySelector("[data-action='addSubtask']")?.dataset.id;
+
+    if (taskId) {
+      toggleSubtask(taskId, subId, cb.checked);
+    }
   });
 }
 

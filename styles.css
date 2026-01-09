@@ -337,3 +337,38 @@ audio{
   cursor:pointer;
   font-size:12px;
 }
+.subtasks{
+  margin-top:10px;
+  padding-left:8px;
+  border-left:2px solid var(--stroke);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.subtask{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.subtask input[type="checkbox"]{
+  accent-color: var(--accent);
+}
+
+.progress{
+  height:6px;
+  background: rgba(255,255,255,.08);
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:8px;
+}
+
+.progress > div{
+  height:100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  width:0%;
+  transition: width .2s ease;
+}
