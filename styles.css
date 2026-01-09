@@ -410,6 +410,88 @@ h1{
   transition: width .2s ease;
 }
 
+/* --- Ultra look (compatible with current theme) --- */
+:root{
+  --radius: 22px;                 /* squircle vibe */
+}
+
+/* True black-ish background */
+body{
+  background: radial-gradient(900px 520px at 50% 0%, #0f1b45 0%, #000 62%);
+}
+
+/* Cards: more "widget" */
+.card{
+  background: rgba(10, 12, 20, .72);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: var(--radius);
+}
+
+/* Inputs: more dense + squircle */
+.input, .textarea, .select{
+  border-radius: 16px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+/* Buttons: squircle + premium press */
+.btn{
+  border-radius: 16px;
+}
+.btn:active{
+  transform: translateY(1px) scale(.99);
+}
+
+/* Mode picker: Apple Watch style grid (for your .modePicker/.modeChip) */
+.modePicker{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.modeChip{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding: 12px 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  opacity: .75;
+}
+
+/* Glow only when selected */
+.modeChip.is-selected{
+  opacity: 1;
+  border-color: rgba(255,255,255,.18);
+  box-shadow: 0 0 18px rgba(255,255,255,.10);
+}
+
+/* Stronger glow per mode class you already use (is-immediate, etc.) */
+.modeChip.is-selected.is-immediate{ box-shadow: 0 0 18px rgba(255,77,90,.35); }
+.modeChip.is-selected.is-quick{ box-shadow: 0 0 18px rgba(255,165,2,.30); }
+.modeChip.is-selected.is-scheduled{ box-shadow: 0 0 18px rgba(83,82,237,.30); }
+.modeChip.is-selected.is-errand{ box-shadow: 0 0 18px rgba(46,213,115,.25); }
+.modeChip.is-selected.is-remember{ box-shadow: 0 0 18px rgba(112,161,255,.30); }
+.modeChip.is-selected.is-waiting{ box-shadow: 0 0 18px rgba(164,176,190,.22); }
+
+/* P picker: subtle glow on selected only */
+.pChip.is-selected{
+  box-shadow: 0 0 14px rgba(255,255,255,.10);
+}
+
+/* Make filter chips (if you have a second row) visually "secondary" */
+.viewChip, .chip{
+  font-size: 11px;
+  padding: 6px 10px;
+  opacity: .85;
+}
+
 .badge{
   font-size: 11px;
   padding: 5px 9px;
