@@ -7,8 +7,9 @@ const STORAGE_KEYS = {
 
 // ---------- IndexedDB (Audio Store) ----------
 const DB_NAME = "mygptapp_db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const AUDIO_STORE = "audio";
+const ATTACH_STORE = "attachments";
 
 let dbPromise = null;
 
@@ -22,6 +23,9 @@ function openDB() {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(AUDIO_STORE)) {
         db.createObjectStore(AUDIO_STORE);
+      }
+      if (!db.objectStoreNames.contains(ATTACH_STORE)) {
+        db.createObjectStore(ATTACH_STORE);
       }
     };
 
@@ -62,6 +66,36 @@ async function deleteAudio(audioId) {
   });
 }
 
+async function putAttachment(attId, blob) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(ATTACH_STORE, "readwrite");
+    tx.objectStore(ATTACH_STORE).put(blob, attId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getAttachment(attId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(ATTACH_STORE, "readonly");
+    const req = tx.objectStore(ATTACH_STORE).get(attId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteAttachment(attId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(ATTACH_STORE, "readwrite");
+    tx.objectStore(ATTACH_STORE).delete(attId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -76,6 +110,7 @@ let audioChunks = [];
 let currentAudioBlob = null;
 let currentAudioUrl = null;
 let currentAudioId = null;
+let currentAttachments = [];
 
 // ---------- Storage ----------
 function load() {
@@ -155,6 +190,25 @@ function renderNotes() {
           li.appendChild(wrap);
         })
         .catch(() => {});
+    }
+
+    if (note.attachments?.length) {
+      const attWrap = document.createElement("div");
+      attWrap.className = "attachments";
+
+      note.attachments.forEach((attId) => {
+        getAttachment(attId).then((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+
+          const div = document.createElement("div");
+          div.className = "thumb";
+          div.innerHTML = `<img src="${url}" />`;
+          attWrap.appendChild(div);
+        });
+      });
+
+      li.appendChild(attWrap);
     }
   }
 }
@@ -291,9 +345,44 @@ function cleanupRecording() {
   $("audioPlayer").src = "";
 }
 
+function resetCurrentAttachments() {
+  currentAttachments = [];
+  if ($("noteAttachments")) {
+    $("noteAttachments").innerHTML = "";
+  }
+}
+
 function discardNoteInputs() {
   $("noteTitle").value = "";
   $("noteText").value = "";
+}
+
+function renderCurrentAttachments() {
+  const wrap = $("noteAttachments");
+  wrap.innerHTML = "";
+
+  for (const attId of currentAttachments) {
+    getAttachment(attId).then((blob) => {
+      if (!blob) return;
+
+      const url = URL.createObjectURL(blob);
+      const div = document.createElement("div");
+      div.className = "thumb";
+
+      div.innerHTML = `
+        <img src="${url}" />
+        <button data-id="${attId}">✕</button>
+      `;
+
+      div.querySelector("button").onclick = async () => {
+        await deleteAttachment(attId);
+        currentAttachments = currentAttachments.filter((x) => x !== attId);
+        renderCurrentAttachments();
+      };
+
+      wrap.appendChild(div);
+    });
+  }
 }
 
 function addNote() {
@@ -311,14 +400,17 @@ function addNote() {
     text,
     createdAt: nowLabel(),
     audioId: currentAudioId || null,
+    attachments: [...currentAttachments],
   };
 
   state.notes.unshift(note);
   currentAudioBlob = null;
   currentAudioUrl = null;
   currentAudioId = null;
+  currentAttachments = [];
   $("audioPreview").hidden = true;
   $("audioPlayer").src = "";
+  $("noteAttachments").innerHTML = "";
   save();
   renderNotes();
   discardNoteInputs();
@@ -360,6 +452,9 @@ function deleteNote(id) {
   if (n?.audioId) {
     deleteAudio(n.audioId);
   }
+  if (n?.attachments?.length) {
+    n.attachments.forEach((attId) => deleteAttachment(attId));
+  }
   state.notes = state.notes.filter((n) => n.id !== id);
   save();
   renderNotes();
@@ -384,6 +479,19 @@ function toggleTaskDone(id) {
 
 // ---------- Init ----------
 function bindEvents() {
+  $("noteImageInput").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const attId = crypto.randomUUID ? crypto.randomUUID() : "att_" + Date.now();
+
+    await putAttachment(attId, file);
+    currentAttachments.push(attId);
+
+    renderCurrentAttachments();
+    e.target.value = "";
+  });
+
   $("btnStart").addEventListener("click", startRecording);
   $("btnStop").addEventListener("click", stopRecording);
   $("btnSaveNote").addEventListener("click", addNote);
@@ -428,6 +536,7 @@ function bindEvents() {
   openDB().catch(() => {});
   bindEvents();
   cleanupRecording();
+  resetCurrentAttachments();
   renderNotes();
   renderTasks();
   setGlobalStatus("OK: Phase 2.1 loaded (UI + local persistence).");

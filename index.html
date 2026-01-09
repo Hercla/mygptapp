@@ -45,6 +45,15 @@
         <textarea class="textarea" id="noteText" rows="5" placeholder="Context / follow-up..."></textarea>
 
         <div class="row">
+          <label class="btn ghost">
+            Add image
+            <input type="file" id="noteImageInput" accept="image/*" hidden />
+          </label>
+        </div>
+
+        <div class="attachments" id="noteAttachments"></div>
+
+        <div class="row">
           <button class="btn accent" id="btnSaveNote">Save Note</button>
           <button class="btn ghost" id="btnDiscardNote">Discard</button>
         </div>
