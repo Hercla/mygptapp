@@ -210,7 +210,7 @@ function renderNotes() {
     li.innerHTML = `
       <div class="itemTop">
         <div>
-          <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
+          <p class="itemTitle">${escapeHtml(note.title || "Untitled")}</p>
           <div class="itemMeta">${escapeHtml(note.createdAt)}</div>
         </div>
 
@@ -518,20 +518,25 @@ function addNote() {
 }
 
 function addTask() {
-  const title = $("taskTitle").value.trim();
-  const details = $("taskDetails").value.trim();
+  const titleEl = $("taskTitle");
+  const detailsEl = $("taskDetails");
+  const title = (titleEl?.value || "").trim();
+  const details = (detailsEl?.value || "").trim();
 
   if (!title) {
     setGlobalStatus("Task not added: title required.");
     return;
   }
 
+  const mode = typeof currentTaskMode === "string" && currentTaskMode ? currentTaskMode : "IMMEDIATE";
+  const p = [1, 2, 3, 4, 5].includes(Number(currentPriorityLevel)) ? Number(currentPriorityLevel) : 3;
+
   const task = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     title,
     details,
-    priority: currentTaskMode,
-    priorityLevel: currentPriorityLevel,
+    priority: mode,
+    priorityLevel: p,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
@@ -542,8 +547,8 @@ function addTask() {
   save();
   renderTasks();
 
-  $("taskTitle").value = "";
-  $("taskDetails").value = "";
+  if (titleEl) titleEl.value = "";
+  if (detailsEl) detailsEl.value = "";
   currentTaskMode = "IMMEDIATE";
   currentPriorityLevel = 3;
   const picker = $("modePicker");
