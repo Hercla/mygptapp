@@ -5,6 +5,63 @@ const STORAGE_KEYS = {
   tasks: "mygptapp_tasks_v1",
 };
 
+// ---------- IndexedDB (Audio Store) ----------
+const DB_NAME = "mygptapp_db";
+const DB_VERSION = 1;
+const AUDIO_STORE = "audio";
+
+let dbPromise = null;
+
+function openDB() {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(AUDIO_STORE)) {
+        db.createObjectStore(AUDIO_STORE);
+      }
+    };
+
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  return dbPromise;
+}
+
+async function putAudio(audioId, blob) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AUDIO_STORE, "readwrite");
+    tx.objectStore(AUDIO_STORE).put(blob, audioId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getAudio(audioId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AUDIO_STORE, "readonly");
+    const req = tx.objectStore(AUDIO_STORE).get(audioId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteAudio(audioId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AUDIO_STORE, "readwrite");
+    tx.objectStore(AUDIO_STORE).delete(audioId);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -18,6 +75,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let currentAudioBlob = null;
 let currentAudioUrl = null;
+let currentAudioId = null;
 
 // ---------- Storage ----------
 function load() {
@@ -76,10 +134,28 @@ function renderNotes() {
       </div>
 
       <p class="itemText">${escapeHtml(note.text || "")}</p>
-      ${note.audio?.url ? `<div class="audioPreview"><audio controls src="${note.audio.url}"></audio></div>` : ""}
     `;
 
     ul.appendChild(li);
+
+    if (note.audioId) {
+      getAudio(note.audioId)
+        .then((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+
+          const wrap = document.createElement("div");
+          wrap.className = "audioPreview";
+
+          const audio = document.createElement("audio");
+          audio.controls = true;
+          audio.src = url;
+
+          wrap.appendChild(audio);
+          li.appendChild(wrap);
+        })
+        .catch(() => {});
+    }
   }
 }
 
@@ -134,6 +210,7 @@ async function startRecording() {
 
     audioChunks = [];
     currentAudioBlob = null;
+    currentAudioId = null;
 
     mediaRecorder = new MediaRecorder(mediaStream, {
       mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -145,19 +222,24 @@ async function startRecording() {
       if (e.data && e.data.size > 0) audioChunks.push(e.data);
     };
 
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
       currentAudioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+
+      const audioId = crypto.randomUUID ? crypto.randomUUID() : "aud_" + Date.now();
+
+      await putAudio(audioId, currentAudioBlob);
 
       if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
 
       currentAudioUrl = URL.createObjectURL(currentAudioBlob);
+      currentAudioId = audioId;
 
       const preview = $("audioPreview");
       const player = $("audioPlayer");
       player.src = currentAudioUrl;
       preview.hidden = false;
 
-      setGlobalStatus("Recording stopped. Audio preview ready.");
+      setGlobalStatus("Recording stopped. Audio saved (IndexedDB) + preview ready.");
     };
 
     mediaRecorder.start();
@@ -204,6 +286,9 @@ function cleanupRecording() {
   $("btnStart").disabled = false;
   $("btnStop").disabled = true;
   $("recordingHint").textContent = "Ready.";
+
+  $("audioPreview").hidden = true;
+  $("audioPlayer").src = "";
 }
 
 function discardNoteInputs() {
@@ -225,12 +310,13 @@ function addNote() {
     title,
     text,
     createdAt: nowLabel(),
-    audio: currentAudioUrl ? { url: currentAudioUrl, mime: currentAudioBlob?.type || "audio/webm" } : null,
+    audioId: currentAudioId || null,
   };
 
   state.notes.unshift(note);
   currentAudioBlob = null;
   currentAudioUrl = null;
+  currentAudioId = null;
   $("audioPreview").hidden = true;
   $("audioPlayer").src = "";
   save();
@@ -270,6 +356,10 @@ function addTask() {
 }
 
 function deleteNote(id) {
+  const n = state.notes.find((x) => x.id === id);
+  if (n?.audioId) {
+    deleteAudio(n.audioId);
+  }
   state.notes = state.notes.filter((n) => n.id !== id);
   save();
   renderNotes();
@@ -335,6 +425,7 @@ function bindEvents() {
 
 (function init() {
   load();
+  openDB().catch(() => {});
   bindEvents();
   cleanupRecording();
   renderNotes();
