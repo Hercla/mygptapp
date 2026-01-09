@@ -784,7 +784,7 @@ function bindEvents() {
   state.tasks.forEach((t) => {
     normalizeMode(t);
     if (typeof t.priorityLevel !== "number") t.priorityLevel = 3;
-    if (!t.priorityLocked && t.priorityLevel === 3) {
+    if (!t.priorityLocked) {
       t.priorityLevel = defaultPriorityForMode(t.mode);
     }
   });
