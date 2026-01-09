@@ -186,6 +186,25 @@ function normalizeMode(task) {
   }
 }
 
+function defaultPriorityForMode(mode) {
+  switch (mode) {
+    case "IMMEDIATE":
+      return 1;
+    case "SCHEDULED":
+      return 2;
+    case "WAITING":
+      return 2;
+    case "ERRAND":
+      return 3;
+    case "QUICK":
+      return 4;
+    case "REMEMBER":
+      return 4;
+    default:
+      return 3;
+  }
+}
+
 function computeProgress(task) {
   ensureSubtasks(task);
   if (!task.subtasks.length) return 0;
@@ -529,7 +548,9 @@ function addTask() {
   }
 
   const mode = typeof currentTaskMode === "string" && currentTaskMode ? currentTaskMode : "IMMEDIATE";
-  const p = [1, 2, 3, 4, 5].includes(Number(currentPriorityLevel)) ? Number(currentPriorityLevel) : 3;
+  const pUser = Number(currentPriorityLevel);
+  const hasUserChosen = [1, 2, 3, 4, 5].includes(pUser) && pUser !== 3;
+  const p = hasUserChosen ? pUser : defaultPriorityForMode(mode);
 
   const task = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
@@ -537,6 +558,7 @@ function addTask() {
     details,
     priority: mode,
     priorityLevel: p,
+    priorityLocked: hasUserChosen,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
@@ -739,6 +761,7 @@ function bindEvents() {
       const t = state.tasks.find((x) => x.id === id);
       if (!t) return;
       t.priorityLevel = [1, 2, 3, 4, 5].includes(p) ? p : 3;
+      t.priorityLocked = true;
       save();
       renderTasks();
       return;
@@ -759,7 +782,11 @@ function bindEvents() {
 (function init() {
   load();
   state.tasks.forEach((t) => {
+    normalizeMode(t);
     if (typeof t.priorityLevel !== "number") t.priorityLevel = 3;
+    if (!t.priorityLocked && t.priorityLevel === 3) {
+      t.priorityLevel = defaultPriorityForMode(t.mode);
+    }
   });
   save();
   openDB().catch(() => {});
