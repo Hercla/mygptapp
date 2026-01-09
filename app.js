@@ -223,6 +223,17 @@ function computeProgress(task) {
   return Math.round((done / task.subtasks.length) * 100);
 }
 
+function dateToTs(dateStr) {
+  if (!dateStr) return null;
+  const ts = Date.parse(`${dateStr}T00:00:00`);
+  return Number.isNaN(ts) ? null : ts;
+}
+
+function isOverdue(task, todayTs) {
+  const dueTs = dateToTs(task.dueDate);
+  return !task.done && dueTs !== null && dueTs < todayTs;
+}
+
 function getPomodoro(taskId) {
   if (!pomodoroTimers[taskId]) {
     pomodoroTimers[taskId] = {
@@ -429,7 +440,22 @@ function renderTasks() {
     normalizePriorityLevel(task);
     applyPriorityFromMode(task);
   });
-  tasksToRender.sort((a, b) => (a.priorityLevel ?? 3) - (b.priorityLevel ?? 3));
+  const todayTs = dateToTs(new Date().toISOString().slice(0, 10)) || Date.now();
+  tasksToRender.sort((a, b) => {
+    const aOver = isOverdue(a, todayTs);
+    const bOver = isOverdue(b, todayTs);
+    if (aOver !== bOver) return aOver ? -1 : 1;
+
+    const aDue = dateToTs(a.dueDate) ?? Number.MAX_SAFE_INTEGER;
+    const bDue = dateToTs(b.dueDate) ?? Number.MAX_SAFE_INTEGER;
+    if (aDue !== bDue) return aDue - bDue;
+
+    const aDo = dateToTs(a.doDate) ?? Number.MAX_SAFE_INTEGER;
+    const bDo = dateToTs(b.doDate) ?? Number.MAX_SAFE_INTEGER;
+    if (aDo !== bDo) return aDo - bDo;
+
+    return (a.priorityLevel ?? 3) - (b.priorityLevel ?? 3);
+  });
 
   for (const task of tasksToRender) {
     const m = MODE_UI[task.mode] || { icon: "", label: String(task.mode), cls: "" };
@@ -437,6 +463,13 @@ function renderTasks() {
     const pClass = `p${p}`;
     const li = document.createElement("li");
     li.className = "item";
+    const overdue = isOverdue(task, todayTs);
+    const dateParts = [];
+    if (task.doDate) dateParts.push(`Do: ${task.doDate}`);
+    if (task.dueDate) dateParts.push(`Due: ${task.dueDate}`);
+    const dateMeta = dateParts.length
+      ? `<div class="itemMeta">${dateParts.join(" · ")}${overdue ? ' <span class="badge overdue">Overdue</span>' : ""}</div>`
+      : "";
     const showPomodoro = task.mode === "IMMEDIATE" || task.mode === "SCHEDULED";
     const timer = showPomodoro ? getPomodoro(task.id) : null;
     const pomodoroHtml = showPomodoro
@@ -467,6 +500,7 @@ function renderTasks() {
           <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
           <div class="modeBadge ${m.cls}">${m.icon} ${m.label}</div>
           <div class="itemMeta">${escapeHtml(task.createdAt)}</div>
+          ${dateMeta}
         </div>
 
         <div class="itemActions">
@@ -695,8 +729,12 @@ function addNote() {
 function addTask() {
   const titleEl = $("taskTitle");
   const detailsEl = $("taskDetails");
+  const doEl = $("taskDoDate");
+  const dueEl = $("taskDueDate");
   const title = (titleEl?.value || "").trim();
   const details = (detailsEl?.value || "").trim();
+  const doDate = doEl?.value || null;
+  const dueDate = dueEl?.value || null;
 
   if (!title) {
     setGlobalStatus("Task not added: title required.");
@@ -715,6 +753,8 @@ function addTask() {
     priorityLevel: hasUserChosen ? pUser : null,
     priorityLocked: hasUserChosen,
     mode,
+    doDate,
+    dueDate,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
@@ -729,6 +769,8 @@ function addTask() {
 
   if (titleEl) titleEl.value = "";
   if (detailsEl) detailsEl.value = "";
+  if (doEl) doEl.value = "";
+  if (dueEl) dueEl.value = "";
   currentTaskMode = "IMMEDIATE";
   currentPriorityLevel = 3;
   const picker = $("modePicker");

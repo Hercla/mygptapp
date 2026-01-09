@@ -507,6 +507,11 @@ body{
 .badge.ERRAND{ border-color: rgba(255,255,255,.18); }
 .badge.REMEMBER{ border-color: rgba(255,255,255,.18); }
 .badge.WAITING{ border-color: rgba(255,255,255,.18); }
+.badge.overdue{
+  border-color: rgba(255,77,90,.45);
+  color: rgba(255,255,255,.92);
+  background: rgba(255,77,90,.12);
+}
 
 .footer{
   max-width: 1100px;
