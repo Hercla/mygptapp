@@ -377,6 +377,38 @@ h1{
 .pBadge.p3{ border-color: rgba(255,255,255,.18); color: rgba(255,255,255,.82); }
 .pBadge.p4{ border-color: rgba(112,161,255,.28); color: rgba(255,255,255,.75); }
 .pBadge.p5{ border-color: rgba(164,176,190,.28); color: rgba(255,255,255,.72); }
+.pomo{
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--stroke);
+}
+
+.pomoTop{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.pomoTime{
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.pomoBar{
+  height: 6px;
+  background: rgba(255,255,255,.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.pomoFill{
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  width: 0%;
+  transition: width .2s ease;
+}
 
 .badge{
   font-size: 11px;

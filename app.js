@@ -123,6 +123,11 @@ let currentAudioId = null;
 let currentAttachments = [];
 let currentTaskMode = "IMMEDIATE";
 let currentPriorityLevel = 3;
+const POMO_DEFAULT_SECONDS = 25 * 60;
+const POMO_DEEP_SECONDS = 50 * 60;
+const pomodoroTimers = {};
+let activePomodoroId = null;
+let pomodoroInterval = null;
 
 // ---------- Storage ----------
 function load() {
@@ -218,6 +223,127 @@ function computeProgress(task) {
   return Math.round((done / task.subtasks.length) * 100);
 }
 
+function getPomodoro(taskId) {
+  if (!pomodoroTimers[taskId]) {
+    pomodoroTimers[taskId] = {
+      duration: POMO_DEFAULT_SECONDS,
+      remaining: POMO_DEFAULT_SECONDS,
+      running: false,
+    };
+  }
+  return pomodoroTimers[taskId];
+}
+
+function formatSeconds(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function stopPomodoroInterval() {
+  if (pomodoroInterval) {
+    clearInterval(pomodoroInterval);
+    pomodoroInterval = null;
+  }
+}
+
+function updatePomodoroUI(taskId) {
+  const root = document.querySelector(`.pomo[data-task='${taskId}']`);
+  if (!root) return;
+  const timer = getPomodoro(taskId);
+  const timeEl = root.querySelector("[data-role='pomoTime']");
+  const fill = root.querySelector("[data-role='pomoFill']");
+  const toggleBtn = root.querySelector("[data-action='pomoToggle']");
+  const durationBtn = root.querySelector("[data-action='pomoDuration']");
+
+  if (timeEl) timeEl.textContent = formatSeconds(timer.remaining);
+  if (fill) {
+    const percent = Math.round((timer.remaining / timer.duration) * 100);
+    fill.style.width = `${percent}%`;
+  }
+  if (toggleBtn) toggleBtn.textContent = timer.running ? "Pause" : "Start";
+  if (durationBtn) durationBtn.textContent = timer.duration === POMO_DEEP_SECONDS ? "50" : "25";
+}
+
+function tickPomodoro() {
+  if (!activePomodoroId) {
+    stopPomodoroInterval();
+    return;
+  }
+  const timer = pomodoroTimers[activePomodoroId];
+  if (!timer || !timer.running) {
+    stopPomodoroInterval();
+    return;
+  }
+  timer.remaining = Math.max(0, timer.remaining - 1);
+  updatePomodoroUI(activePomodoroId);
+  if (timer.remaining === 0) {
+    timer.running = false;
+    stopPomodoroInterval();
+    activePomodoroId = null;
+    setGlobalStatus("Pomodoro complete.");
+  }
+}
+
+function startPomodoro(taskId) {
+  const timer = getPomodoro(taskId);
+  if (activePomodoroId && activePomodoroId !== taskId) {
+    const activeTimer = pomodoroTimers[activePomodoroId];
+    if (activeTimer) activeTimer.running = false;
+    updatePomodoroUI(activePomodoroId);
+  }
+  activePomodoroId = taskId;
+  timer.running = true;
+  if (!pomodoroInterval) {
+    pomodoroInterval = setInterval(tickPomodoro, 1000);
+  }
+  updatePomodoroUI(taskId);
+  setGlobalStatus("Pomodoro started.");
+}
+
+function pausePomodoro(taskId) {
+  const timer = getPomodoro(taskId);
+  timer.running = false;
+  if (activePomodoroId === taskId) {
+    activePomodoroId = null;
+  }
+  stopPomodoroInterval();
+  updatePomodoroUI(taskId);
+  setGlobalStatus("Pomodoro paused.");
+}
+
+function togglePomodoro(taskId) {
+  const timer = getPomodoro(taskId);
+  if (timer.running) {
+    pausePomodoro(taskId);
+  } else {
+    startPomodoro(taskId);
+  }
+}
+
+function resetPomodoro(taskId) {
+  const timer = getPomodoro(taskId);
+  timer.running = false;
+  timer.remaining = timer.duration;
+  if (activePomodoroId === taskId) {
+    activePomodoroId = null;
+  }
+  stopPomodoroInterval();
+  updatePomodoroUI(taskId);
+  setGlobalStatus("Pomodoro reset.");
+}
+
+function togglePomodoroDuration(taskId) {
+  const timer = getPomodoro(taskId);
+  if (timer.running) {
+    setGlobalStatus("Pause to change duration.");
+    return;
+  }
+  timer.duration = timer.duration === POMO_DEEP_SECONDS ? POMO_DEFAULT_SECONDS : POMO_DEEP_SECONDS;
+  timer.remaining = timer.duration;
+  updatePomodoroUI(taskId);
+}
+
 // ---------- Render ----------
 function renderNotes() {
   const ul = $("notesList");
@@ -311,6 +437,29 @@ function renderTasks() {
     const pClass = `p${p}`;
     const li = document.createElement("li");
     li.className = "item";
+    const showPomodoro = task.mode === "IMMEDIATE" || task.mode === "SCHEDULED";
+    const timer = showPomodoro ? getPomodoro(task.id) : null;
+    const pomodoroHtml = showPomodoro
+      ? `
+        <div class="pomo" data-task="${task.id}">
+          <div class="pomoTop">
+            <span class="pomoTime" data-role="pomoTime">${formatSeconds(timer.remaining)}</span>
+            <button class="btn tiny ghost" data-action="pomoToggle" data-id="${task.id}">
+              ${timer.running ? "Pause" : "Start"}
+            </button>
+            <button class="btn tiny ghost" data-action="pomoReset" data-id="${task.id}">Reset</button>
+            <button class="btn tiny ghost" data-action="pomoDuration" data-id="${task.id}">
+              ${timer.duration === POMO_DEEP_SECONDS ? "50" : "25"}
+            </button>
+          </div>
+          <div class="pomoBar">
+            <div class="pomoFill" data-role="pomoFill" style="width:${Math.round(
+              (timer.remaining / timer.duration) * 100
+            )}%"></div>
+          </div>
+        </div>
+      `
+      : "";
 
     li.innerHTML = `
       <div class="itemTop">
@@ -335,6 +484,7 @@ function renderTasks() {
       </div>
 
       ${task.details ? `<p class="itemText">${escapeHtml(task.details)}</p>` : ""}
+      ${pomodoroHtml}
     `;
 
     if (task.done) {
@@ -616,6 +766,13 @@ function deleteNote(id) {
 }
 
 function deleteTask(id) {
+  if (pomodoroTimers[id]) {
+    delete pomodoroTimers[id];
+  }
+  if (activePomodoroId === id) {
+    activePomodoroId = null;
+    stopPomodoroInterval();
+  }
   state.tasks = state.tasks.filter((t) => t.id !== id);
   save();
   renderTasks();
@@ -759,6 +916,9 @@ function bindEvents() {
     if (action === "deleteTask") deleteTask(id);
     if (action === "toggleDone") toggleTaskDone(id);
     if (action === "addSubtask") addSubtask(id);
+    if (action === "pomoToggle") togglePomodoro(id);
+    if (action === "pomoReset") resetPomodoro(id);
+    if (action === "pomoDuration") togglePomodoroDuration(id);
   });
 
   $("tasksList").addEventListener("change", (e) => {
