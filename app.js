@@ -14,6 +14,14 @@ const PRIORITY_LABELS = {
   REMEMBER: "Remember",
   WAITING: "Waiting",
 };
+const MODE_UI = {
+  IMMEDIATE: { icon: "", label: "Immediate", cls: "is-immediate" },
+  QUICK: { icon: "⚡", label: "Quick", cls: "is-quick" },
+  SCHEDULED: { icon: "", label: "Scheduled", cls: "is-scheduled" },
+  ERRAND: { icon: "", label: "Errand", cls: "is-errand" },
+  REMEMBER: { icon: "", label: "Remember", cls: "is-remember" },
+  WAITING: { icon: "⏳", label: "Waiting", cls: "is-waiting" },
+};
 
 // ---------- IndexedDB (Audio Store) ----------
 const DB_NAME = "mygptapp_db";
@@ -121,6 +129,7 @@ let currentAudioBlob = null;
 let currentAudioUrl = null;
 let currentAudioId = null;
 let currentAttachments = [];
+let currentTaskMode = "IMMEDIATE";
 
 // ---------- Storage ----------
 function load() {
@@ -255,6 +264,9 @@ function renderTasks() {
 
   for (const task of state.tasks) {
     normalizePriority(task);
+    const legacyMap = { HIGH: "IMMEDIATE", MEDIUM: "QUICK", LOW: "WAITING" };
+    const resolvedMode = legacyMap[task.priority] || task.priority;
+    const m = MODE_UI[resolvedMode] || { icon: "", label: String(resolvedMode), cls: "" };
     const li = document.createElement("li");
     li.className = "item";
 
@@ -262,6 +274,7 @@ function renderTasks() {
       <div class="itemTop">
         <div>
           <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
+          <div class="modeBadge ${m.cls}">${m.icon} ${m.label}</div>
           <div class="itemMeta">${escapeHtml(task.createdAt)} · <span class="badge ${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span></div>
         </div>
 
@@ -495,7 +508,7 @@ function addTask() {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     title,
     details,
-    priority,
+    priority: currentTaskMode,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
@@ -508,7 +521,17 @@ function addTask() {
 
   $("taskTitle").value = "";
   $("taskDetails").value = "";
-  $("taskPriority").value = "IMMEDIATE";
+  currentTaskMode = "IMMEDIATE";
+  const picker = $("modePicker");
+  if (picker) {
+    const defaultBtn = picker.querySelector('button[data-mode="IMMEDIATE"]');
+    if (defaultBtn) {
+      picker.querySelectorAll(".modeChip").forEach((b) => {
+        b.classList.remove("is-selected", ...Object.values(MODE_UI).map((x) => x.cls));
+      });
+      defaultBtn.classList.add("is-selected", MODE_UI.IMMEDIATE.cls);
+    }
+  }
 
   setGlobalStatus("Task added.");
 }
@@ -583,6 +606,27 @@ function toggleSubtask(taskId, subId, done) {
 
 // ---------- Init ----------
 function bindEvents() {
+  const picker = $("modePicker");
+  if (picker) {
+    picker.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-mode]");
+      if (!btn) return;
+
+      const mode = btn.dataset.mode;
+      if (!MODE_UI[mode]) return;
+
+      currentTaskMode = mode;
+
+      picker.querySelectorAll(".modeChip").forEach((b) => {
+        b.classList.remove("is-selected", ...Object.values(MODE_UI).map((x) => x.cls));
+      });
+
+      btn.classList.add("is-selected", MODE_UI[mode].cls);
+    });
+
+    const defaultBtn = picker.querySelector('button[data-mode="IMMEDIATE"]');
+    if (defaultBtn) defaultBtn.classList.add("is-selected", MODE_UI.IMMEDIATE.cls);
+  }
   $("noteImageInput").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;

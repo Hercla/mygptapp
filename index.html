@@ -81,15 +81,15 @@
         <label class="label" for="taskDetails">Details (optional)</label>
         <textarea class="textarea" id="taskDetails" rows="3" placeholder="Add helpful notes..."></textarea>
 
-        <label class="label" for="taskPriority">Priority</label>
-        <select class="select" id="taskPriority">
-          <option value="IMMEDIATE" selected>Immediate</option>
-          <option value="QUICK">Quick</option>
-          <option value="SCHEDULED">Scheduled</option>
-          <option value="ERRAND">Errand</option>
-          <option value="REMEMBER">Remember</option>
-          <option value="WAITING">Waiting</option>
-        </select>
+        <label class="label" data-i18n="mode">Mode</label>
+        <div class="modePicker" id="modePicker">
+          <button type="button" class="modeChip is-selected" data-mode="IMMEDIATE">Immediate</button>
+          <button type="button" class="modeChip" data-mode="QUICK">⚡ Quick</button>
+          <button type="button" class="modeChip" data-mode="SCHEDULED">Scheduled</button>
+          <button type="button" class="modeChip" data-mode="ERRAND">Errand</button>
+          <button type="button" class="modeChip" data-mode="REMEMBER">Remember</button>
+          <button type="button" class="modeChip" data-mode="WAITING">⏳ Waiting</button>
+        </div>
 
         <div class="row">
           <button class="btn accent" id="btnAddTask">Add Task</button>

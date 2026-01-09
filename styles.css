@@ -275,6 +275,61 @@ h1{
 .chip.errand{ border-color: rgba(255,255,255,.16); }
 .chip.remember{ border-color: rgba(255,255,255,.16); }
 .chip.waiting{ border-color: rgba(255,255,255,.16); }
+.modePicker{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin: 6px 0 10px;
+}
+
+.modeChip{
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .08s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+}
+
+.modeChip:active{ transform: translateY(1px); }
+.modeChip:hover{ opacity:.92; }
+
+.modeChip.is-selected{
+  border-color: transparent;
+  color: #fff;
+}
+
+.is-immediate{ background: rgba(255,77,90,.88); }
+.is-quick{ background: rgba(255,165,2,.88); }
+.is-scheduled{ background: rgba(83,82,237,.88); }
+.is-errand{ background: rgba(46,213,115,.88); }
+.is-remember{ background: rgba(112,161,255,.88); }
+.is-waiting{ background: rgba(164,176,190,.78); }
+
+.modeBadge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .02em;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.04);
+  color: var(--dim);
+  margin-top: 6px;
+}
+
+.modeBadge.is-immediate{ border-color: rgba(255,77,90,.35); color: rgba(255,255,255,.9); background: rgba(255,77,90,.12); }
+.modeBadge.is-quick{ border-color: rgba(255,165,2,.35); color: rgba(255,255,255,.9); background: rgba(255,165,2,.12); }
+.modeBadge.is-scheduled{ border-color: rgba(83,82,237,.35); color: rgba(255,255,255,.9); background: rgba(83,82,237,.12); }
+.modeBadge.is-errand{ border-color: rgba(46,213,115,.30); color: rgba(255,255,255,.9); background: rgba(46,213,115,.10); }
+.modeBadge.is-remember{ border-color: rgba(112,161,255,.35); color: rgba(255,255,255,.9); background: rgba(112,161,255,.12); }
+.modeBadge.is-waiting{ border-color: rgba(164,176,190,.30); color: rgba(255,255,255,.82); background: rgba(164,176,190,.10); }
 
 .badge{
   font-size: 11px;
