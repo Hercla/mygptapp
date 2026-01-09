@@ -5,13 +5,14 @@ const STORAGE_KEYS = {
   tasks: "mygptapp_tasks_v1",
 };
 
-const TASK_MODES = {
-  IMMEDIATE: { label: "Immediate", icon: "" },
-  QUICK: { label: "Quick", icon: "⚡" },
-  SCHEDULED: { label: "Scheduled", icon: "" },
-  ERRAND: { label: "Errand", icon: "" },
-  REMEMBER: { label: "Remember", icon: "" },
-  WAITING: { label: "Waiting", icon: "⏳" },
+const PRIORITY_VALUES = ["IMMEDIATE", "QUICK", "SCHEDULED", "ERRAND", "REMEMBER", "WAITING"];
+const PRIORITY_LABELS = {
+  IMMEDIATE: "Immediate",
+  QUICK: "Quick",
+  SCHEDULED: "Scheduled",
+  ERRAND: "Errand",
+  REMEMBER: "Remember",
+  WAITING: "Waiting",
 };
 
 // ---------- IndexedDB (Audio Store) ----------
@@ -155,9 +156,13 @@ function ensureSubtasks(task) {
   if (!Array.isArray(task.subtasks)) task.subtasks = [];
 }
 
-function normalizeTaskMode(task) {
-  if (!task.mode || !TASK_MODES[task.mode]) {
-    task.mode = "IMMEDIATE";
+function normalizePriority(task) {
+  const legacy = { HIGH: "IMMEDIATE", MEDIUM: "QUICK", LOW: "WAITING" };
+  if (legacy[task.priority]) {
+    task.priority = legacy[task.priority];
+  }
+  if (!PRIORITY_VALUES.includes(task.priority)) {
+    task.priority = "IMMEDIATE";
   }
 }
 
@@ -185,7 +190,7 @@ function renderNotes() {
     li.innerHTML = `
       <div class="itemTop">
         <div>
-          <p class="itemTitle">${escapeHtml(note.title || "Untitled")}</p>
+          <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
           <div class="itemMeta">${escapeHtml(note.createdAt)}</div>
         </div>
 
@@ -249,33 +254,18 @@ function renderTasks() {
   }
 
   for (const task of state.tasks) {
-    normalizeTaskMode(task);
-    const mode = task.mode;
+    normalizePriority(task);
     const li = document.createElement("li");
     li.className = "item";
 
     li.innerHTML = `
       <div class="itemTop">
         <div>
-          <p class="itemTitle">
-            <span class="modeBadge">${TASK_MODES[mode]?.icon || ""} ${TASK_MODES[mode]?.label || mode}</span>
-            ${escapeHtml(task.title || "Untitled task")}
-          </p>
-          <div class="itemMeta">${escapeHtml(task.createdAt)} · <span class="badge ${task.priority}">${task.priority}</span></div>
+          <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
+          <div class="itemMeta">${escapeHtml(task.createdAt)} · <span class="badge ${task.priority}">${PRIORITY_LABELS[task.priority] || task.priority}</span></div>
         </div>
 
         <div class="itemActions">
-          <select class="modeSelect" data-id="${task.id}">
-            ${Object.keys(TASK_MODES)
-              .map(
-                (m) => `
-              <option value="${m}" ${mode === m ? "selected" : ""}>
-                ${TASK_MODES[m].icon} ${TASK_MODES[m].label}
-              </option>
-            `
-              )
-              .join("")}
-          </select>
           <button class="btn tiny ghost" data-action="toggleDone" data-id="${task.id}">
             ${task.done ? "Undone" : "Done"}
           </button>
@@ -505,11 +495,9 @@ function addTask() {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     title,
     details,
-    mode: "IMMEDIATE",
     priority,
     done: false,
     createdAt: nowLabel(),
-    scheduledAt: null,
     subtasks: [],
     attachments: [],
   };
@@ -520,7 +508,7 @@ function addTask() {
 
   $("taskTitle").value = "";
   $("taskDetails").value = "";
-  $("taskPriority").value = "MEDIUM";
+  $("taskPriority").value = "IMMEDIATE";
 
   setGlobalStatus("Task added.");
 }
@@ -648,20 +636,6 @@ function bindEvents() {
   });
 
   $("tasksList").addEventListener("change", (e) => {
-    if (e.target.matches(".modeSelect")) {
-      const taskId = e.target.dataset.id;
-      const mode = e.target.value;
-      const task = state.tasks.find((t) => t.id === taskId);
-      if (!task) return;
-      task.mode = mode;
-      if (mode !== "SCHEDULED") {
-        task.scheduledAt = null;
-      }
-      save();
-      renderTasks();
-      return;
-    }
-
     if (e.target.matches("input[data-subtask]")) {
       const subId = e.target.dataset.subtask;
       const taskEl = e.target.closest(".item");
@@ -684,3 +658,5 @@ function bindEvents() {
   renderTasks();
   setGlobalStatus("OK: Phase 2.1 loaded (UI + local persistence).");
 })();
+
+

@@ -83,9 +83,12 @@
 
         <label class="label" for="taskPriority">Priority</label>
         <select class="select" id="taskPriority">
-          <option value="HIGH">High</option>
-          <option value="MEDIUM" selected>Medium</option>
-          <option value="LOW">Low</option>
+          <option value="IMMEDIATE" selected>Immediate</option>
+          <option value="QUICK">Quick</option>
+          <option value="SCHEDULED">Scheduled</option>
+          <option value="ERRAND">Errand</option>
+          <option value="REMEMBER">Remember</option>
+          <option value="WAITING">Waiting</option>
         </select>
 
         <div class="row">
@@ -96,9 +99,12 @@
         <div class="divider"></div>
 
         <div class="chips">
-          <span class="chip high">HIGH</span>
-          <span class="chip medium">MEDIUM</span>
-          <span class="chip low">LOW</span>
+          <span class="chip immediate">IMMEDIATE</span>
+          <span class="chip quick">QUICK</span>
+          <span class="chip scheduled">SCHEDULED</span>
+          <span class="chip errand">ERRAND</span>
+          <span class="chip remember">REMEMBER</span>
+          <span class="chip waiting">WAITING</span>
         </div>
 
         <ul class="list" id="tasksList"></ul>

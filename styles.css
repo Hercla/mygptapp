@@ -269,9 +269,12 @@ h1{
   background: rgba(255,255,255,.04);
   color: var(--dim);
 }
-.chip.high{ border-color: rgba(255,77,90,.35); }
-.chip.medium{ border-color: rgba(255,255,255,.16); }
-.chip.low{ border-color: rgba(31,208,166,.28); }
+.chip.immediate{ border-color: rgba(255,77,90,.35); }
+.chip.quick{ border-color: rgba(31,208,166,.28); }
+.chip.scheduled{ border-color: rgba(45,108,255,.35); }
+.chip.errand{ border-color: rgba(255,255,255,.16); }
+.chip.remember{ border-color: rgba(255,255,255,.16); }
+.chip.waiting{ border-color: rgba(255,255,255,.16); }
 
 .badge{
   font-size: 11px;
@@ -282,9 +285,12 @@ h1{
   background: rgba(255,255,255,.03);
   white-space:nowrap;
 }
-.badge.HIGH{ border-color: rgba(255,77,90,.35); }
-.badge.MEDIUM{ border-color: rgba(255,255,255,.18); }
-.badge.LOW{ border-color: rgba(31,208,166,.28); }
+.badge.IMMEDIATE{ border-color: rgba(255,77,90,.35); }
+.badge.QUICK{ border-color: rgba(31,208,166,.28); }
+.badge.SCHEDULED{ border-color: rgba(45,108,255,.35); }
+.badge.ERRAND{ border-color: rgba(255,255,255,.18); }
+.badge.REMEMBER{ border-color: rgba(255,255,255,.18); }
+.badge.WAITING{ border-color: rgba(255,255,255,.18); }
 
 .footer{
   max-width: 1100px;
@@ -371,19 +377,4 @@ audio{
   background: linear-gradient(90deg, var(--accent), var(--primary));
   width:0%;
   transition: width .2s ease;
-}
-.modeBadge{
-  font-size:11px;
-  padding:4px 8px;
-  border-radius:999px;
-  background: rgba(255,255,255,.08);
-  margin-right:6px;
-}
-
-.modeSelect{
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
-  color: var(--text);
 }
