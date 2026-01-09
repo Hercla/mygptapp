@@ -205,6 +205,12 @@ function defaultPriorityForMode(mode) {
   }
 }
 
+function applyPriorityFromMode(task) {
+  if (task.priorityLocked) return;
+  normalizeMode(task);
+  task.priorityLevel = defaultPriorityForMode(task.mode);
+}
+
 function computeProgress(task) {
   ensureSubtasks(task);
   if (!task.subtasks.length) return 0;
@@ -295,7 +301,7 @@ function renderTasks() {
   const tasksToRender = state.tasks.slice();
   tasksToRender.forEach((task) => {
     normalizePriorityLevel(task);
-    normalizeMode(task);
+    applyPriorityFromMode(task);
   });
   tasksToRender.sort((a, b) => (a.priorityLevel ?? 3) - (b.priorityLevel ?? 3));
 
@@ -550,20 +556,22 @@ function addTask() {
   const mode = typeof currentTaskMode === "string" && currentTaskMode ? currentTaskMode : "IMMEDIATE";
   const pUser = Number(currentPriorityLevel);
   const hasUserChosen = [1, 2, 3, 4, 5].includes(pUser) && pUser !== 3;
-  const p = hasUserChosen ? pUser : defaultPriorityForMode(mode);
 
   const task = {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     title,
     details,
     priority: mode,
-    priorityLevel: p,
+    priorityLevel: hasUserChosen ? pUser : null,
     priorityLocked: hasUserChosen,
+    mode,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
     attachments: [],
   };
+
+  applyPriorityFromMode(task);
 
   state.tasks.unshift(task);
   save();
@@ -781,14 +789,14 @@ function bindEvents() {
 
 (function init() {
   load();
+  let changed = false;
   state.tasks.forEach((t) => {
-    normalizeMode(t);
-    if (typeof t.priorityLevel !== "number") t.priorityLevel = 3;
-    if (!t.priorityLocked) {
-      t.priorityLevel = defaultPriorityForMode(t.mode);
-    }
+    const before = t.priorityLevel;
+    normalizePriorityLevel(t);
+    applyPriorityFromMode(t);
+    if (before !== t.priorityLevel) changed = true;
   });
-  save();
+  if (changed) save();
   openDB().catch(() => {});
   bindEvents();
   cleanupRecording();
