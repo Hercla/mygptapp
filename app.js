@@ -376,6 +376,7 @@ function createDatePicker() {
           <button type="button" class="btn tiny ghost" id="dpToday">Today</button>
           <button type="button" class="btn tiny ghost" id="dpPlus1">+1d</button>
           <button type="button" class="btn tiny ghost" id="dpPlus7">+7d</button>
+          <button type="button" class="btn tiny ghost" id="dpPlus30">+30d</button>
           <button type="button" class="btn tiny ghost" id="dpClear">Clear</button>
         </div>
       </div>
@@ -424,6 +425,12 @@ function createDatePicker() {
     overlay.querySelector("#dpPlus7").addEventListener("click", () => {
       const base = dateFromYMD(selectedYMD) || new Date();
       base.setDate(base.getDate() + 7);
+      setSelected(ymdFromDate(base));
+    });
+
+    overlay.querySelector("#dpPlus30").addEventListener("click", () => {
+      const base = dateFromYMD(selectedYMD) || new Date();
+      base.setDate(base.getDate() + 30);
       setSelected(ymdFromDate(base));
     });
 
@@ -1232,8 +1239,27 @@ function bindEvents() {
   function validateDoDue() {
     const doV = $("doDate")?.value || "";
     const dueV = $("dueDate")?.value || "";
+    const warn = $("dateWarning");
     if (doV && dueV && doV > dueV) {
       setGlobalStatus("Warning: Do date is after Due date.");
+      if (warn) {
+        warn.innerHTML = `Do > Due. <button type="button" class="btn tiny ghost" id="swapDatesBtn">Swap dates</button>`;
+        const swapBtn = $("swapDatesBtn");
+        if (swapBtn) {
+          swapBtn.addEventListener("click", () => {
+            const doEl = $("doDate");
+            const dueEl = $("dueDate");
+            if (!doEl || !dueEl) return;
+            const tmp = doEl.value;
+            doEl.value = dueEl.value;
+            dueEl.value = tmp;
+            if (warn) warn.textContent = "";
+            setGlobalStatus("Dates swapped.");
+          });
+        }
+      }
+    } else if (warn) {
+      warn.textContent = "";
     }
   }
   $("doDate")?.addEventListener("change", validateDoDue);
