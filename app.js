@@ -14,6 +14,12 @@ const MODE_UI = {
   REMEMBER: { icon: "", label: "Remember", cls: "is-remember" },
   WAITING: { icon: "⏳", label: "Waiting", cls: "is-waiting" },
 };
+const RECURRENCE_LABELS = {
+  none: "None",
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+};
 
 // ---------- IndexedDB (Audio Store) ----------
 const DB_NAME = "mygptapp_db";
@@ -191,6 +197,12 @@ function normalizeMode(task) {
   }
 }
 
+function normalizeRecurrence(task) {
+  if (!RECURRENCE_LABELS[task.recurrence]) {
+    task.recurrence = "none";
+  }
+}
+
 function defaultPriorityForMode(mode) {
   switch (mode) {
     case "IMMEDIATE":
@@ -227,6 +239,17 @@ function dateToTs(dateStr) {
   if (!dateStr) return null;
   const ts = Date.parse(`${dateStr}T00:00:00`);
   return Number.isNaN(ts) ? null : ts;
+}
+
+function advanceDate(dateStr, recurrence) {
+  if (!dateStr) return null;
+  const ts = dateToTs(dateStr);
+  if (ts === null) return null;
+  const d = new Date(ts);
+  if (recurrence === "daily") d.setDate(d.getDate() + 1);
+  if (recurrence === "weekly") d.setDate(d.getDate() + 7);
+  if (recurrence === "monthly") d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 function isOverdue(task, todayTs) {
@@ -439,6 +462,7 @@ function renderTasks() {
   tasksToRender.forEach((task) => {
     normalizePriorityLevel(task);
     applyPriorityFromMode(task);
+    normalizeRecurrence(task);
   });
   const todayTs = dateToTs(new Date().toISOString().slice(0, 10)) || Date.now();
   tasksToRender.sort((a, b) => {
@@ -467,6 +491,9 @@ function renderTasks() {
     const dateParts = [];
     if (task.doDate) dateParts.push(`Do: ${task.doDate}`);
     if (task.dueDate) dateParts.push(`Due: ${task.dueDate}`);
+    if (task.recurrence && task.recurrence !== "none") {
+      dateParts.push(`Repeat: ${RECURRENCE_LABELS[task.recurrence] || task.recurrence}`);
+    }
     const dateMeta = dateParts.length
       ? `<div class="itemMeta">${dateParts.join(" · ")}${overdue ? ' <span class="badge overdue">Overdue</span>' : ""}</div>`
       : "";
@@ -731,10 +758,12 @@ function addTask() {
   const detailsEl = $("taskDetails");
   const doEl = $("taskDoDate");
   const dueEl = $("taskDueDate");
+  const recurrenceEl = $("taskRecurrence");
   const title = (titleEl?.value || "").trim();
   const details = (detailsEl?.value || "").trim();
   const doDate = doEl?.value || null;
   const dueDate = dueEl?.value || null;
+  const recurrence = recurrenceEl?.value || "none";
 
   if (!title) {
     setGlobalStatus("Task not added: title required.");
@@ -755,6 +784,7 @@ function addTask() {
     mode,
     doDate,
     dueDate,
+    recurrence,
     done: false,
     createdAt: nowLabel(),
     subtasks: [],
@@ -771,6 +801,7 @@ function addTask() {
   if (detailsEl) detailsEl.value = "";
   if (doEl) doEl.value = "";
   if (dueEl) dueEl.value = "";
+  if (recurrenceEl) recurrenceEl.value = "none";
   currentTaskMode = "IMMEDIATE";
   currentPriorityLevel = 3;
   const picker = $("modePicker");
@@ -825,9 +856,24 @@ function toggleTaskDone(id) {
   const t = state.tasks.find((x) => x.id === id);
   if (!t) return;
   t.done = !t.done;
+  normalizeRecurrence(t);
+  if (t.done && t.recurrence !== "none") {
+    const hadDate = t.doDate || t.dueDate;
+    t.doDate = advanceDate(t.doDate, t.recurrence);
+    t.dueDate = advanceDate(t.dueDate, t.recurrence);
+    if (hadDate) {
+      t.done = false;
+      setGlobalStatus("Recurring task advanced.");
+    } else {
+      t.done = false;
+      setGlobalStatus("Recurring task reset.");
+    }
+  }
   save();
   renderTasks();
-  setGlobalStatus(t.done ? "Task marked done." : "Task marked undone.");
+  if (t.recurrence === "none") {
+    setGlobalStatus(t.done ? "Task marked done." : "Task marked undone.");
+  }
 }
 
 function addSubtask(taskId) {
@@ -996,6 +1042,7 @@ function bindEvents() {
     const before = t.priorityLevel;
     normalizePriorityLevel(t);
     applyPriorityFromMode(t);
+    normalizeRecurrence(t);
     if (before !== t.priorityLevel) changed = true;
   });
   if (changed) save();
