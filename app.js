@@ -136,8 +136,6 @@ const POMO_DEEP_SECONDS = 50 * 60;
 const pomodoroTimers = {};
 let activePomodoroId = null;
 let pomodoroInterval = null;
-let datePickerRoot = null;
-let datePickerState = { input: null, year: 0, month: 0 };
 
 // ---------- Storage ----------
 function load() {
@@ -322,188 +320,6 @@ function compareTaskKeys(a, b) {
   if (a.dueRank !== b.dueRank) return a.dueRank < b.dueRank ? -1 : 1;
   if (a.doRank !== b.doRank) return a.doRank < b.doRank ? -1 : 1;
   return a.pRank - b.pRank;
-}
-
-function formatYMD(year, month, day) {
-  const mm = String(month + 1).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
-  return `${year}-${mm}-${dd}`;
-}
-
-function createDatePicker() {
-  if (datePickerRoot) return datePickerRoot;
-  const root = document.createElement("div");
-  root.className = "datePicker";
-  root.hidden = true;
-  root.innerHTML = `
-    <div class="dpHeader">
-      <button class="btn tiny ghost" data-action="prev">‹</button>
-      <div class="dpTitle" data-role="title"></div>
-      <button class="btn tiny ghost" data-action="next">›</button>
-    </div>
-    <div class="dpWeek">
-      <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
-    </div>
-    <div class="dpGrid" data-role="grid"></div>
-    <div class="dpFooter">
-      <button class="btn tiny ghost" data-action="today">Today</button>
-      <button class="btn tiny ghost" data-action="plus1">+1j</button>
-      <button class="btn tiny ghost" data-action="plus7">+1sem</button>
-      <button class="btn tiny ghost" data-action="clear">Clear</button>
-    </div>
-  `;
-  document.body.appendChild(root);
-
-  root.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-action]");
-    if (!btn) return;
-    const action = btn.dataset.action;
-    if (action === "prev") shiftDatePickerMonth(-1);
-    if (action === "next") shiftDatePickerMonth(1);
-    if (action === "today") {
-      const today = new Date();
-      selectDate(today.getFullYear(), today.getMonth(), today.getDate());
-    }
-    if (action === "plus1") {
-      shiftDatePickerDay(1);
-    }
-    if (action === "plus7") {
-      shiftDatePickerDay(7);
-    }
-    if (action === "clear") {
-      if (datePickerState.input) datePickerState.input.value = "";
-      hideDatePicker();
-    }
-  });
-
-  document.addEventListener("mousedown", (e) => {
-    if (!root.hidden && !root.contains(e.target) && e.target !== datePickerState.input) {
-      hideDatePicker();
-    }
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") hideDatePicker();
-  });
-
-  datePickerRoot = root;
-  return root;
-}
-
-function positionDatePicker(input) {
-  const root = createDatePicker();
-  const rect = input.getBoundingClientRect();
-  const top = rect.bottom + 6;
-  const left = Math.min(rect.left, window.innerWidth - 260);
-  root.style.top = `${top}px`;
-  root.style.left = `${left}px`;
-}
-
-function showDatePicker(input) {
-  const root = createDatePicker();
-  datePickerState.input = input;
-
-  const value = input.value;
-  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const [y, m, d] = value.split("-").map(Number);
-    datePickerState.year = y;
-    datePickerState.month = m - 1;
-    datePickerState.day = d;
-  } else {
-    const now = new Date();
-    datePickerState.year = now.getFullYear();
-    datePickerState.month = now.getMonth();
-    datePickerState.day = now.getDate();
-  }
-
-  renderDatePicker();
-  positionDatePicker(input);
-  root.hidden = false;
-}
-
-function hideDatePicker() {
-  if (datePickerRoot) datePickerRoot.hidden = true;
-  datePickerState.input = null;
-}
-
-function shiftDatePickerMonth(delta) {
-  let y = datePickerState.year;
-  let m = datePickerState.month + delta;
-  if (m < 0) {
-    m = 11;
-    y -= 1;
-  }
-  if (m > 11) {
-    m = 0;
-    y += 1;
-  }
-  datePickerState.year = y;
-  datePickerState.month = m;
-  renderDatePicker();
-}
-
-function shiftDatePickerDay(delta) {
-  const base = datePickerState.input?.value;
-  const start = base && /^\d{4}-\d{2}-\d{2}$/.test(base) ? base : todayYMD();
-  const next = addDaysYMD(start, delta);
-  if (!next) return;
-  const [y, m, d] = next.split("-").map(Number);
-  datePickerState.year = y;
-  datePickerState.month = m - 1;
-  datePickerState.day = d;
-  selectDate(y, m - 1, d);
-}
-
-function selectDate(year, month, day) {
-  if (!datePickerState.input) return;
-  datePickerState.input.value = formatYMD(year, month, day);
-  hideDatePicker();
-}
-
-function renderDatePicker() {
-  const root = createDatePicker();
-  const title = root.querySelector("[data-role='title']");
-  const grid = root.querySelector("[data-role='grid']");
-  const monthNames = [
-    "Janvier",
-    "Fevrier",
-    "Mars",
-    "Avril",
-    "Mai",
-    "Juin",
-    "Juillet",
-    "Aout",
-    "Septembre",
-    "Octobre",
-    "Novembre",
-    "Decembre",
-  ];
-  const y = datePickerState.year;
-  const m = datePickerState.month;
-  title.textContent = `${monthNames[m]} ${y}`;
-
-  const first = new Date(y, m, 1);
-  const startDay = (first.getDay() + 6) % 7;
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < startDay; i += 1) {
-    cells.push(`<span class="dpEmpty"></span>`);
-  }
-  const today = todayYMD();
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const ymd = formatYMD(y, m, day);
-    const selected = datePickerState.input?.value === ymd ? "is-selected" : "";
-    const isToday = ymd === today ? "is-today" : "";
-    cells.push(`<button type="button" class="dpDay ${selected} ${isToday}" data-day="${day}">${day}</button>`);
-  }
-  grid.innerHTML = cells.join("");
-
-  grid.querySelectorAll("button[data-day]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const day = Number(btn.dataset.day);
-      selectDate(y, m, day);
-    });
-  });
 }
 
 function advanceDate(dateStr, recurrenceType) {
@@ -1171,10 +987,6 @@ function toggleSubtask(taskId, subId, done) {
 
 // ---------- Init ----------
 function bindEvents() {
-  document.querySelectorAll("[data-datepicker]").forEach((input) => {
-    input.addEventListener("click", () => showDatePicker(input));
-    input.addEventListener("focus", () => showDatePicker(input));
-  });
   const tv = $("timeViews");
   if (tv) {
     tv.addEventListener("click", (e) => {
@@ -1332,6 +1144,7 @@ function bindEvents() {
   renderTasks();
   setGlobalStatus("OK: Phase 2.1 loaded (UI + local persistence).");
 })();
+
 
 
 
