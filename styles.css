@@ -468,26 +468,27 @@ h1{
 }
 
 .dpCard{
-  width: min(420px, 100%);
+  width: min(360px, 100%);
   background: rgba(12, 18, 38, .78);
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 20px;
   box-shadow: 0 22px 60px rgba(0,0,0,.55);
   backdrop-filter: blur(10px);
-  padding: 14px;
+  padding: 12px;
 }
 
 .dpHeader{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
-  padding: 6px 6px 10px;
+  gap:8px;
+  padding: 4px 4px 8px;
 }
 
 .dpMonth{
   font-weight: 900;
   letter-spacing: -.01em;
+  text-transform: capitalize;
 }
 
 .dpNav{
@@ -498,13 +499,13 @@ h1{
 .dpGrid{
   display:grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  padding: 8px 6px;
+  gap: 6px;
+  padding: 6px 4px;
 }
 
 .dpDow{
   text-align:center;
-  font-size: 11px;
+  font-size: 10px;
   color: rgba(255,255,255,.6);
   font-weight: 800;
   letter-spacing: .03em;
@@ -513,10 +514,10 @@ h1{
 .dpDay{
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.05);
-  border-radius: 14px;
-  padding: 10px 0;
+  border-radius: 12px;
+  padding: 8px 0;
   cursor:pointer;
-  font-weight: 900;
+  font-weight: 800;
   color: rgba(255,255,255,.88);
   transition: transform .08s ease, opacity .15s ease, box-shadow .15s ease;
   user-select:none;
@@ -536,15 +537,14 @@ h1{
 }
 
 .dpFooter{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  padding: 8px 6px 4px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:8px;
+  padding: 6px 4px 4px;
 }
 
 .dpFooter .btn{
-  flex:1;
-  min-width: 100px;
+  min-width: 0;
 }
 
 /* --- Ultra look (compatible with current theme) --- */
