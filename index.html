@@ -121,6 +121,21 @@
           <option value="MONTHLY">Monthly</option>
         </select>
 
+        <div class="timeViews" id="timeViews">
+          <button type="button" class="timeChip is-selected" data-timeview="ALL">All</button>
+          <button type="button" class="timeChip" data-timeview="TODAY">Today</button>
+          <button type="button" class="timeChip" data-timeview="OVERDUE">Overdue</button>
+          <button type="button" class="timeChip" data-timeview="WEEK">This Week</button>
+          <button type="button" class="timeChip" data-timeview="NODATE">No Date</button>
+
+          <label class="hideDone">
+            <input type="checkbox" id="hideDoneToggle" checked />
+            Hide done
+          </label>
+        </div>
+
+        <div class="timeMeta" id="timeMeta"></div>
+
         <ul class="list" id="tasksList"></ul>
       </section>
     </main>

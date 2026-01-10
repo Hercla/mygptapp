@@ -409,6 +409,41 @@ h1{
   width: 0%;
   transition: width .2s ease;
 }
+.timeViews{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin: 10px 0 8px;
+}
+
+.timeChip{
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor:pointer;
+  transition: opacity .15s ease, transform .08s ease, background .15s ease;
+  opacity: .86;
+}
+
+.timeChip:hover{ opacity:.95; }
+.timeChip:active{ transform: translateY(1px); }
+
+.timeChip.is-selected{
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
+  opacity: 1;
+}
+
+.timeMeta{
+  color: var(--dim);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
 
 /* --- Ultra look (compatible with current theme) --- */
 :root{

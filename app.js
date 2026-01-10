@@ -129,6 +129,8 @@ let currentAudioId = null;
 let currentAttachments = [];
 let currentTaskMode = "IMMEDIATE";
 let currentPriorityLevel = 3;
+let currentTimeView = "ALL";
+let hideDone = true;
 const POMO_DEFAULT_SECONDS = 25 * 60;
 const POMO_DEEP_SECONDS = 50 * 60;
 const pomodoroTimers = {};
@@ -246,6 +248,78 @@ function dateToTs(dateStr) {
   if (!dateStr) return null;
   const ts = Date.parse(`${dateStr}T00:00:00`);
   return Number.isNaN(ts) ? null : ts;
+}
+
+function todayYMD() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function ymdToDate(ymd) {
+  if (!ymd) return null;
+  const parts = ymd.split("-").map(Number);
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts;
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+function addDaysYMD(ymd, days) {
+  const dt = ymdToDate(ymd);
+  if (!dt) return null;
+  dt.setDate(dt.getDate() + days);
+  const yyyy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function matchesTimeView(task, timeView, today) {
+  const doD = task.doDate || null;
+  const dueD = task.dueDate || null;
+
+  if (timeView === "ALL") return true;
+
+  if (timeView === "NODATE") {
+    return !doD && !dueD;
+  }
+
+  if (timeView === "TODAY") {
+    return doD === today;
+  }
+
+  if (timeView === "OVERDUE") {
+    return !!dueD && dueD < today && !task.done;
+  }
+
+  if (timeView === "WEEK") {
+    if (!doD) return false;
+    const end = addDaysYMD(today, 7);
+    return doD >= today && doD <= end;
+  }
+
+  return true;
+}
+
+function taskSortKey(task, today) {
+  const due = task.dueDate || null;
+  const doD = task.doDate || null;
+  const isOver = !!due && due < today && !task.done;
+  const overdueRank = isOver ? 0 : 1;
+  const dueRank = due || "9999-12-31";
+  const doRank = doD || "9999-12-31";
+  const pRank = typeof task.priorityLevel === "number" ? task.priorityLevel : 3;
+  return { overdueRank, dueRank, doRank, pRank };
+}
+
+function compareTaskKeys(a, b) {
+  if (a.overdueRank !== b.overdueRank) return a.overdueRank - b.overdueRank;
+  if (a.dueRank !== b.dueRank) return a.dueRank < b.dueRank ? -1 : 1;
+  if (a.doRank !== b.doRank) return a.doRank < b.doRank ? -1 : 1;
+  return a.pRank - b.pRank;
 }
 
 function advanceDate(dateStr, recurrenceType) {
@@ -465,28 +539,20 @@ function renderTasks() {
     return;
   }
 
-  const tasksToRender = state.tasks.slice();
+  const today = todayYMD();
+  let tasksToRender = state.tasks.slice();
   tasksToRender.forEach((task) => {
     normalizePriorityLevel(task);
     applyPriorityFromMode(task);
     normalizeRecurrence(task);
   });
-  const todayTs = dateToTs(new Date().toISOString().slice(0, 10)) || Date.now();
-  tasksToRender.sort((a, b) => {
-    const aOver = isOverdue(a, todayTs);
-    const bOver = isOverdue(b, todayTs);
-    if (aOver !== bOver) return aOver ? -1 : 1;
-
-    const aDue = dateToTs(a.dueDate) ?? Number.MAX_SAFE_INTEGER;
-    const bDue = dateToTs(b.dueDate) ?? Number.MAX_SAFE_INTEGER;
-    if (aDue !== bDue) return aDue - bDue;
-
-    const aDo = dateToTs(a.doDate) ?? Number.MAX_SAFE_INTEGER;
-    const bDo = dateToTs(b.doDate) ?? Number.MAX_SAFE_INTEGER;
-    if (aDo !== bDo) return aDo - bDo;
-
-    return (a.priorityLevel ?? 3) - (b.priorityLevel ?? 3);
-  });
+  if (hideDone) tasksToRender = tasksToRender.filter((t) => !t.done);
+  tasksToRender = tasksToRender.filter((t) => matchesTimeView(t, currentTimeView, today));
+  tasksToRender.sort((A, B) => compareTaskKeys(taskSortKey(A, today), taskSortKey(B, today)));
+  const meta = $("timeMeta");
+  if (meta) {
+    meta.textContent = `Time view: ${currentTimeView} - Showing ${tasksToRender.length}`;
+  }
 
   for (const task of tasksToRender) {
     const m = MODE_UI[task.mode] || { icon: "", label: String(task.mode), cls: "" };
@@ -494,16 +560,15 @@ function renderTasks() {
     const pClass = `p${p}`;
     const li = document.createElement("li");
     li.className = "item";
-    const overdue = isOverdue(task, todayTs);
-    const dateParts = [];
-    if (task.doDate) dateParts.push(`Do: ${task.doDate}`);
-    if (task.dueDate) dateParts.push(`Due: ${task.dueDate}`);
-    if (task.recurrence?.type && task.recurrence.type !== "NONE") {
-      dateParts.push(`Repeat: ${RECURRENCE_LABELS[task.recurrence.type] || task.recurrence.type}`);
-    }
-    const dateMeta = dateParts.length
-      ? `<div class="itemMeta">${dateParts.join(" · ")}${overdue ? ' <span class="badge overdue">Overdue</span>' : ""}</div>`
-      : "";
+    const overdue = task.dueDate && task.dueDate < today && !task.done;
+    const dateLine = `
+      <div class="itemMeta">
+        ${task.doDate ? `Do: ${escapeHtml(task.doDate)} ` : ""}
+        ${task.dueDate ? `- Due: ${escapeHtml(task.dueDate)} ` : ""}
+        ${task.recurrence?.type && task.recurrence.type !== "NONE" ? `- Repeat: ${RECURRENCE_LABELS[task.recurrence.type] || task.recurrence.type} ` : ""}
+        ${overdue ? '- <span class="badge overdue">OVERDUE</span>' : ""}
+      </div>
+    `;
     const showPomodoro = task.mode === "IMMEDIATE" || task.mode === "SCHEDULED";
     const timer = showPomodoro ? getPomodoro(task.id) : null;
     const pomodoroHtml = showPomodoro
@@ -534,7 +599,7 @@ function renderTasks() {
           <p class="itemTitle">${escapeHtml(task.title || "Untitled task")}</p>
           <div class="modeBadge ${m.cls}">${m.icon} ${m.label}</div>
           <div class="itemMeta">${escapeHtml(task.createdAt)}</div>
-          ${dateMeta}
+          ${dateLine}
         </div>
 
         <div class="itemActions">
@@ -922,6 +987,25 @@ function toggleSubtask(taskId, subId, done) {
 
 // ---------- Init ----------
 function bindEvents() {
+  const tv = $("timeViews");
+  if (tv) {
+    tv.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-timeview]");
+      if (!btn) return;
+      currentTimeView = btn.dataset.timeview;
+      tv.querySelectorAll(".timeChip").forEach((b) => b.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+      renderTasks();
+    });
+  }
+  const hd = $("hideDoneToggle");
+  if (hd) {
+    hideDone = hd.checked;
+    hd.addEventListener("change", () => {
+      hideDone = hd.checked;
+      renderTasks();
+    });
+  }
   const picker = $("modePicker");
   if (picker) {
     picker.addEventListener("click", (e) => {
@@ -1060,6 +1144,7 @@ function bindEvents() {
   renderTasks();
   setGlobalStatus("OK: Phase 2.1 loaded (UI + local persistence).");
 })();
+
 
 
 
