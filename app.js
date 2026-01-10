@@ -15,10 +15,10 @@ const MODE_UI = {
   WAITING: { icon: "⏳", label: "Waiting", cls: "is-waiting" },
 };
 const RECURRENCE_LABELS = {
-  none: "None",
-  daily: "Daily",
-  weekly: "Weekly",
-  monthly: "Monthly",
+  NONE: "None",
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
 };
 
 // ---------- IndexedDB (Audio Store) ----------
@@ -198,8 +198,15 @@ function normalizeMode(task) {
 }
 
 function normalizeRecurrence(task) {
-  if (!RECURRENCE_LABELS[task.recurrence]) {
-    task.recurrence = "none";
+  if (!task.recurrence || typeof task.recurrence !== "object") {
+    task.recurrence = { type: "NONE", interval: 1 };
+    return;
+  }
+  if (!RECURRENCE_LABELS[task.recurrence.type]) {
+    task.recurrence.type = "NONE";
+  }
+  if (typeof task.recurrence.interval !== "number" || task.recurrence.interval < 1) {
+    task.recurrence.interval = 1;
   }
 }
 
@@ -241,14 +248,14 @@ function dateToTs(dateStr) {
   return Number.isNaN(ts) ? null : ts;
 }
 
-function advanceDate(dateStr, recurrence) {
+function advanceDate(dateStr, recurrenceType) {
   if (!dateStr) return null;
   const ts = dateToTs(dateStr);
   if (ts === null) return null;
   const d = new Date(ts);
-  if (recurrence === "daily") d.setDate(d.getDate() + 1);
-  if (recurrence === "weekly") d.setDate(d.getDate() + 7);
-  if (recurrence === "monthly") d.setMonth(d.getMonth() + 1);
+  if (recurrenceType === "DAILY") d.setDate(d.getDate() + 1);
+  if (recurrenceType === "WEEKLY") d.setDate(d.getDate() + 7);
+  if (recurrenceType === "MONTHLY") d.setMonth(d.getMonth() + 1);
   return d.toISOString().slice(0, 10);
 }
 
@@ -491,8 +498,8 @@ function renderTasks() {
     const dateParts = [];
     if (task.doDate) dateParts.push(`Do: ${task.doDate}`);
     if (task.dueDate) dateParts.push(`Due: ${task.dueDate}`);
-    if (task.recurrence && task.recurrence !== "none") {
-      dateParts.push(`Repeat: ${RECURRENCE_LABELS[task.recurrence] || task.recurrence}`);
+    if (task.recurrence?.type && task.recurrence.type !== "NONE") {
+      dateParts.push(`Repeat: ${RECURRENCE_LABELS[task.recurrence.type] || task.recurrence.type}`);
     }
     const dateMeta = dateParts.length
       ? `<div class="itemMeta">${dateParts.join(" · ")}${overdue ? ' <span class="badge overdue">Overdue</span>' : ""}</div>`
@@ -763,7 +770,7 @@ function addTask() {
   const details = (detailsEl?.value || "").trim();
   const doDate = doEl?.value || null;
   const dueDate = dueEl?.value || null;
-  const recurrence = recurrenceEl?.value || "none";
+  const recurrence = { type: recurrenceEl?.value || "NONE", interval: 1 };
 
   if (!title) {
     setGlobalStatus("Task not added: title required.");
@@ -801,7 +808,7 @@ function addTask() {
   if (detailsEl) detailsEl.value = "";
   if (doEl) doEl.value = "";
   if (dueEl) dueEl.value = "";
-  if (recurrenceEl) recurrenceEl.value = "none";
+  if (recurrenceEl) recurrenceEl.value = "NONE";
   currentTaskMode = "IMMEDIATE";
   currentPriorityLevel = 3;
   const picker = $("modePicker");
@@ -857,21 +864,20 @@ function toggleTaskDone(id) {
   if (!t) return;
   t.done = !t.done;
   normalizeRecurrence(t);
-  if (t.done && t.recurrence !== "none") {
-    const hadDate = t.doDate || t.dueDate;
-    t.doDate = advanceDate(t.doDate, t.recurrence);
-    t.dueDate = advanceDate(t.dueDate, t.recurrence);
-    if (hadDate) {
-      t.done = false;
-      setGlobalStatus("Recurring task advanced.");
-    } else {
-      t.done = false;
-      setGlobalStatus("Recurring task reset.");
+  if (t.done && t.recurrence.type !== "NONE") {
+    const hadDo = !!t.doDate;
+    const hadDue = !!t.dueDate;
+    if (hadDo) {
+      t.doDate = advanceDate(t.doDate, t.recurrence.type);
+    } else if (hadDue) {
+      t.dueDate = advanceDate(t.dueDate, t.recurrence.type);
     }
+    t.done = false;
+    setGlobalStatus("Recurring task advanced.");
   }
   save();
   renderTasks();
-  if (t.recurrence === "none") {
+  if (t.recurrence.type === "NONE") {
     setGlobalStatus(t.done ? "Task marked done." : "Task marked undone.");
   }
 }
