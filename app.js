@@ -347,6 +347,8 @@ function createDatePicker() {
     <div class="dpGrid" data-role="grid"></div>
     <div class="dpFooter">
       <button class="btn tiny ghost" data-action="today">Today</button>
+      <button class="btn tiny ghost" data-action="plus1">+1j</button>
+      <button class="btn tiny ghost" data-action="plus7">+1sem</button>
       <button class="btn tiny ghost" data-action="clear">Clear</button>
     </div>
   `;
@@ -361,6 +363,12 @@ function createDatePicker() {
     if (action === "today") {
       const today = new Date();
       selectDate(today.getFullYear(), today.getMonth(), today.getDate());
+    }
+    if (action === "plus1") {
+      shiftDatePickerDay(1);
+    }
+    if (action === "plus7") {
+      shiftDatePickerDay(7);
     }
     if (action === "clear") {
       if (datePickerState.input) datePickerState.input.value = "";
@@ -434,6 +442,18 @@ function shiftDatePickerMonth(delta) {
   renderDatePicker();
 }
 
+function shiftDatePickerDay(delta) {
+  const base = datePickerState.input?.value;
+  const start = base && /^\d{4}-\d{2}-\d{2}$/.test(base) ? base : todayYMD();
+  const next = addDaysYMD(start, delta);
+  if (!next) return;
+  const [y, m, d] = next.split("-").map(Number);
+  datePickerState.year = y;
+  datePickerState.month = m - 1;
+  datePickerState.day = d;
+  selectDate(y, m - 1, d);
+}
+
 function selectDate(year, month, day) {
   if (!datePickerState.input) return;
   datePickerState.input.value = formatYMD(year, month, day);
@@ -469,10 +489,12 @@ function renderDatePicker() {
   for (let i = 0; i < startDay; i += 1) {
     cells.push(`<span class="dpEmpty"></span>`);
   }
+  const today = todayYMD();
   for (let day = 1; day <= daysInMonth; day += 1) {
     const ymd = formatYMD(y, m, day);
     const selected = datePickerState.input?.value === ymd ? "is-selected" : "";
-    cells.push(`<button type="button" class="dpDay ${selected}" data-day="${day}">${day}</button>`);
+    const isToday = ymd === today ? "is-today" : "";
+    cells.push(`<button type="button" class="dpDay ${selected} ${isToday}" data-day="${day}">${day}</button>`);
   }
   grid.innerHTML = cells.join("");
 

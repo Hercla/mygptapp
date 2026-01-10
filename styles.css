@@ -588,9 +588,16 @@ body{
   border-color: rgba(255,255,255,.2);
 }
 
+.dpDay.is-today{
+  border-color: rgba(255,255,255,.35);
+  box-shadow: 0 0 10px rgba(255,255,255,.15);
+}
+
 .dpFooter{
   display:flex;
   justify-content:space-between;
+  gap:6px;
+  flex-wrap:wrap;
   margin-top: 10px;
 }
 
