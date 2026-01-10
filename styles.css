@@ -527,6 +527,73 @@ body{
   opacity: .85;
 }
 
+.datePicker{
+  position: fixed;
+  z-index: 9999;
+  width: 240px;
+  background: rgba(10, 12, 20, .92);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.55);
+  color: var(--text);
+}
+
+.dpHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom: 8px;
+}
+
+.dpTitle{
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.dpWeek{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+
+.dpGrid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dpDay, .dpEmpty{
+  height: 28px;
+  border-radius: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 12px;
+}
+
+.dpDay{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  color: var(--text);
+  cursor:pointer;
+}
+
+.dpDay:hover{ opacity:.9; }
+.dpDay.is-selected{
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.2);
+}
+
+.dpFooter{
+  display:flex;
+  justify-content:space-between;
+  margin-top: 10px;
+}
+
 .badge{
   font-size: 11px;
   padding: 5px 9px;
