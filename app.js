@@ -322,6 +322,232 @@ function compareTaskKeys(a, b) {
   return a.pRank - b.pRank;
 }
 
+// ---------- DatePicker (Custom OLED) ----------
+function createDatePicker() {
+  let overlay = null;
+  let activeInput = null;
+  let viewYear = null;
+  let viewMonth = null;
+  let selectedYMD = null;
+
+  const DOW = ["L", "M", "M", "J", "V", "S", "D"];
+
+  function ymdFromDate(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function dateFromYMD(ymd) {
+    if (!ymd) return null;
+    const [y, m, d] = ymd.split("-").map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  }
+
+  function daysInMonth(y, m0) {
+    return new Date(y, m0 + 1, 0).getDate();
+  }
+
+  function mondayIndex(jsDate) {
+    const js = jsDate.getDay();
+    return (js + 6) % 7;
+  }
+
+  function ensureOverlay() {
+    if (overlay) return;
+
+    overlay = document.createElement("div");
+    overlay.className = "dpOverlay";
+    overlay.innerHTML = `
+      <div class="dpCard" role="dialog" aria-modal="true">
+        <div class="dpHeader">
+          <div class="dpMonth" id="dpMonthLabel"></div>
+          <div class="dpNav">
+            <button type="button" class="btn tiny ghost" id="dpPrev">◀</button>
+            <button type="button" class="btn tiny ghost" id="dpNext">▶</button>
+          </div>
+        </div>
+
+        <div class="dpGrid" id="dpGrid"></div>
+
+        <div class="dpFooter">
+          <button type="button" class="btn tiny ghost" id="dpToday">Today</button>
+          <button type="button" class="btn tiny ghost" id="dpPlus1">+1d</button>
+          <button type="button" class="btn tiny ghost" id="dpPlus7">+7d</button>
+          <button type="button" class="btn tiny ghost" id="dpClear">Clear</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (!overlay || overlay.style.display === "none") return;
+      if (e.key === "Escape") close();
+    });
+
+    overlay.querySelector("#dpPrev").addEventListener("click", () => {
+      viewMonth -= 1;
+      if (viewMonth < 0) {
+        viewMonth = 11;
+        viewYear -= 1;
+      }
+      render();
+    });
+
+    overlay.querySelector("#dpNext").addEventListener("click", () => {
+      viewMonth += 1;
+      if (viewMonth > 11) {
+        viewMonth = 0;
+        viewYear += 1;
+      }
+      render();
+    });
+
+    overlay.querySelector("#dpToday").addEventListener("click", () => {
+      const t = new Date();
+      setSelected(ymdFromDate(t));
+    });
+
+    overlay.querySelector("#dpPlus1").addEventListener("click", () => {
+      const base = dateFromYMD(selectedYMD) || new Date();
+      base.setDate(base.getDate() + 1);
+      setSelected(ymdFromDate(base));
+    });
+
+    overlay.querySelector("#dpPlus7").addEventListener("click", () => {
+      const base = dateFromYMD(selectedYMD) || new Date();
+      base.setDate(base.getDate() + 7);
+      setSelected(ymdFromDate(base));
+    });
+
+    overlay.querySelector("#dpClear").addEventListener("click", () => {
+      if (activeInput) activeInput.value = "";
+      close();
+    });
+  }
+
+  function setSelected(ymd) {
+    selectedYMD = ymd;
+
+    if (activeInput) {
+      activeInput.value = ymd;
+      activeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    const d = dateFromYMD(ymd);
+    if (d) {
+      viewYear = d.getFullYear();
+      viewMonth = d.getMonth();
+    }
+
+    render();
+    close();
+  }
+
+  function render() {
+    if (!overlay) return;
+
+    const monthLabel = overlay.querySelector("#dpMonthLabel");
+    const grid = overlay.querySelector("#dpGrid");
+    grid.innerHTML = "";
+
+    DOW.forEach((d) => {
+      const el = document.createElement("div");
+      el.className = "dpDow";
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    const first = new Date(viewYear, viewMonth, 1);
+    const firstIdx = mondayIndex(first);
+    const dim = daysInMonth(viewYear, viewMonth);
+
+    const prevMonth = viewMonth === 0 ? 11 : viewMonth - 1;
+    const prevYear = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const prevDim = daysInMonth(prevYear, prevMonth);
+
+    const today = ymdFromDate(new Date());
+
+    for (let i = 0; i < 42; i++) {
+      const cell = document.createElement("div");
+      cell.className = "dpDay";
+
+      let dayNum;
+      let y;
+      let m0;
+      let isMuted = false;
+
+      if (i < firstIdx) {
+        dayNum = prevDim - (firstIdx - 1 - i);
+        y = prevYear;
+        m0 = prevMonth;
+        isMuted = true;
+      } else if (i >= firstIdx + dim) {
+        dayNum = i - (firstIdx + dim) + 1;
+        y = viewMonth === 11 ? viewYear + 1 : viewYear;
+        m0 = viewMonth === 11 ? 0 : viewMonth + 1;
+        isMuted = true;
+      } else {
+        dayNum = i - firstIdx + 1;
+        y = viewYear;
+        m0 = viewMonth;
+      }
+
+      const d = new Date(y, m0, dayNum);
+      const ymd = ymdFromDate(d);
+
+      cell.textContent = String(dayNum);
+      if (isMuted) cell.classList.add("is-muted");
+      if (ymd === today) cell.classList.add("is-today");
+      if (selectedYMD && ymd === selectedYMD) cell.classList.add("is-selected");
+
+      cell.addEventListener("click", () => setSelected(ymd));
+      grid.appendChild(cell);
+    }
+
+    const monthName = new Date(viewYear, viewMonth, 1).toLocaleString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+    monthLabel.textContent = monthName;
+  }
+
+  function openFor(inputEl) {
+    ensureOverlay();
+    activeInput = inputEl;
+
+    const current = (inputEl.value || "").trim();
+    selectedYMD = current || null;
+
+    const base = dateFromYMD(selectedYMD) || new Date();
+    viewYear = base.getFullYear();
+    viewMonth = base.getMonth();
+
+    overlay.style.display = "flex";
+    render();
+  }
+
+  function close() {
+    if (!overlay) return;
+    overlay.style.display = "none";
+    activeInput = null;
+  }
+
+  function initHidden() {
+    ensureOverlay();
+    overlay.style.display = "none";
+  }
+
+  return { openFor, close, initHidden };
+}
+
 function advanceDate(dateStr, recurrenceType) {
   if (!dateStr) return null;
   const ts = dateToTs(dateStr);
@@ -828,8 +1054,8 @@ function addNote() {
 function addTask() {
   const titleEl = $("taskTitle");
   const detailsEl = $("taskDetails");
-  const doEl = $("taskDoDate");
-  const dueEl = $("taskDueDate");
+  const doEl = $("doDate");
+  const dueEl = $("dueDate");
   const recurrenceEl = $("taskRecurrence");
   const title = (titleEl?.value || "").trim();
   const details = (detailsEl?.value || "").trim();
@@ -987,6 +1213,31 @@ function toggleSubtask(taskId, subId, done) {
 
 // ---------- Init ----------
 function bindEvents() {
+  const dp = createDatePicker();
+  dp.initHidden();
+
+  $("doDateBtn")?.addEventListener("click", () => dp.openFor($("doDate")));
+  $("dueDateBtn")?.addEventListener("click", () => dp.openFor($("dueDate")));
+  $("doDate")?.addEventListener("click", () => dp.openFor($("doDate")));
+  $("dueDate")?.addEventListener("click", () => dp.openFor($("dueDate")));
+  $("doDateClear")?.addEventListener("click", () => {
+    const el = $("doDate");
+    if (el) el.value = "";
+  });
+  $("dueDateClear")?.addEventListener("click", () => {
+    const el = $("dueDate");
+    if (el) el.value = "";
+  });
+
+  function validateDoDue() {
+    const doV = $("doDate")?.value || "";
+    const dueV = $("dueDate")?.value || "";
+    if (doV && dueV && doV > dueV) {
+      setGlobalStatus("Warning: Do date is after Due date.");
+    }
+  }
+  $("doDate")?.addEventListener("change", validateDoDue);
+  $("dueDate")?.addEventListener("change", validateDoDue);
   const tv = $("timeViews");
   if (tv) {
     tv.addEventListener("click", (e) => {

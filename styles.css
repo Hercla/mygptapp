@@ -445,6 +445,108 @@ h1{
   margin-bottom: 10px;
 }
 
+.dateField{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.dateField .input{
+  flex:1;
+}
+
+/* DatePicker popup */
+.dpOverlay{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 18px;
+  z-index: 9999;
+}
+
+.dpCard{
+  width: min(420px, 100%);
+  background: rgba(12, 18, 38, .78);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  box-shadow: 0 22px 60px rgba(0,0,0,.55);
+  backdrop-filter: blur(10px);
+  padding: 14px;
+}
+
+.dpHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 6px 6px 10px;
+}
+
+.dpMonth{
+  font-weight: 900;
+  letter-spacing: -.01em;
+}
+
+.dpNav{
+  display:flex;
+  gap:8px;
+}
+
+.dpGrid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 8px 6px;
+}
+
+.dpDow{
+  text-align:center;
+  font-size: 11px;
+  color: rgba(255,255,255,.6);
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+.dpDay{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  border-radius: 14px;
+  padding: 10px 0;
+  cursor:pointer;
+  font-weight: 900;
+  color: rgba(255,255,255,.88);
+  transition: transform .08s ease, opacity .15s ease, box-shadow .15s ease;
+  user-select:none;
+  text-align:center;
+}
+
+.dpDay:active{ transform: translateY(1px); }
+.dpDay.is-muted{ opacity:.35; }
+.dpDay.is-today{
+  border-color: rgba(31,208,166,.35);
+  box-shadow: 0 0 14px rgba(31,208,166,.18);
+}
+.dpDay.is-selected{
+  border-color: rgba(45,108,255,.45);
+  box-shadow: 0 0 18px rgba(45,108,255,.25);
+  background: rgba(45,108,255,.16);
+}
+
+.dpFooter{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  padding: 8px 6px 4px;
+}
+
+.dpFooter .btn{
+  flex:1;
+  min-width: 100px;
+}
+
 /* --- Ultra look (compatible with current theme) --- */
 :root{
   --radius: 22px;                 /* squircle vibe */

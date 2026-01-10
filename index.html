@@ -107,11 +107,19 @@
           <button type="button" class="pChip" data-p="5">P5</button>
         </div>
 
-        <label class="label" for="taskDoDate">Do</label>
-        <input class="input" id="taskDoDate" type="date" />
+        <label class="label">Do date</label>
+        <div class="dateField">
+          <input class="input" id="doDate" placeholder="YYYY-MM-DD" readonly />
+          <button type="button" class="btn tiny ghost" id="doDateBtn" aria-label="Pick Do date"></button>
+          <button type="button" class="btn tiny ghost" id="doDateClear" aria-label="Clear Do date">✕</button>
+        </div>
 
-        <label class="label" for="taskDueDate">Due</label>
-        <input class="input" id="taskDueDate" type="date" />
+        <label class="label">Due date</label>
+        <div class="dateField">
+          <input class="input" id="dueDate" placeholder="YYYY-MM-DD" readonly />
+          <button type="button" class="btn tiny ghost" id="dueDateBtn" aria-label="Pick Due date"></button>
+          <button type="button" class="btn tiny ghost" id="dueDateClear" aria-label="Clear Due date">✕</button>
+        </div>
 
         <label class="label" for="taskRecurrence">Recurrence</label>
         <select class="select" id="taskRecurrence">
